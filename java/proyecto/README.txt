@@ -33,10 +33,16 @@ Cómo trabajar
    los hilos de forma distinta a una JVM real. La corrección se hará
    después con pruebas en una JVM real.
 
-5. Cuando termines los dos ejercicios, pulsa "Descargar entrega" y sube el
-   .zip a la tarea del Aula Virtual. Además de tu código, el .zip incluye
-   un informe técnico del entorno (tiempos de carga y compilación) que nos
-   sirve para evaluar el laboratorio.
+5. Entrega: el cuestionario del Aula Virtual tiene una pregunta por
+   ejercicio. Con un archivo del ejercicio abierto, pulsa "Copiar código" y
+   pégalo en su pregunta.
+   - Hazlo cada 10 o 15 minutos, no solo al final: si el entorno se cierra,
+     lo que ya esté en el cuestionario no se pierde.
+   - El texto copiado termina con un comentario "Informe del entorno"
+     (tiempos de carga y compilación) que nos sirve para evaluar el
+     laboratorio. No lo borres.
+   - Antes de terminar, comprueba que la última versión de cada ejercicio
+     está pegada en su pregunta y envía el intento.
 
 Si algo se bloquea
 ------------------

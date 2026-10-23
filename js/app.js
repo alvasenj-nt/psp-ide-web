@@ -110,6 +110,10 @@ function actualizarEjecutar() {
   $('btn-ejecutar').title = paquete
     ? 'Compilar ' + paquete + ' y ejecutar su Main.java (Ctrl+F11)'
     : 'Abre un archivo de un ejercicio para ejecutarlo';
+  $('btn-copiar-codigo').disabled = !paquete;
+  $('btn-copiar-codigo').title = paquete
+    ? 'Copiar el código de ' + paquete + ' para pegarlo en el cuestionario'
+    : 'Abre un archivo de un ejercicio para copiar su código';
 }
 
 function bloquearBotones(bloquear) {
@@ -536,8 +540,7 @@ function textoInforme() {
   return lineas.join('\n');
 }
 
-async function copiarInforme() {
-  const texto = textoInforme();
+async function copiarTexto(texto) {
   try {
     await navigator.clipboard.writeText(texto);
   } catch (e) {
@@ -548,7 +551,34 @@ async function copiarInforme() {
     document.execCommand('copy');
     area.remove();
   }
-  setEstado('Informe copiado. Pégalo en la tarea del Aula Virtual.');
+}
+
+async function copiarInforme() {
+  await copiarTexto(textoInforme());
+  setEstado('Informe copiado.');
+}
+
+// Entrega por cuestionario: copia los archivos editables del ejercicio abierto
+// para pegarlos en su pregunta de ensayo. El informe del entorno viaja al final
+// como comentario, y corregir.sh lo separa del código.
+const MARCA_ARCHIVO = '// ===== Archivo: ';
+const MARCA_INFORME = '/* Informe del entorno (no borrar):';
+
+function textoEntrega(paquete) {
+  const editables = Object.keys(ARCHIVOS).filter((n) => paqueteDe(n) === paquete && !ARCHIVOS[n].soloLectura);
+  const codigo = editables.length === 1
+    ? estado.docs[editables[0]].getValue()
+    : editables.map((n) => MARCA_ARCHIVO + n + ' =====\n' + estado.docs[n].getValue()).join('\n');
+  // Separador ' | ': el identificador del navegador contiene ';'
+  const informe = informeEntorno().trim().split('\n').slice(1).join(' | ');
+  return codigo.replace(/\s*$/, '\n') + '\n' + MARCA_INFORME + ' ' + informe + ' */\n';
+}
+
+async function copiarCodigo() {
+  const paquete = paqueteDe(estado.activo);
+  if (!paquete) return;
+  await copiarTexto(textoEntrega(paquete));
+  setEstado('Código de ' + paquete + ' copiado. Pégalo en su pregunta del cuestionario.');
 }
 
 function informeEntorno() {
@@ -598,6 +628,7 @@ function enlazarUI() {
   $('btn-diagnostico').addEventListener('click', accionDiagnostico);
   $('btn-copiar').addEventListener('click', copiarInforme);
   $('btn-descargar').addEventListener('click', descargarEntrega);
+  $('btn-copiar-codigo').addEventListener('click', copiarCodigo);
   $('btn-plantilla').addEventListener('click', restaurarPlantilla);
   $('btn-reiniciar').addEventListener('click', () => location.reload());
   $('btn-terminar').addEventListener('click', () => location.reload());
