@@ -45,6 +45,7 @@
         <li><button class="archivo" data-archivo="Main.java">Main.java</button></li>
         <li><button class="archivo" data-archivo="Prenda.java">Prenda.java <span class="solo-lectura">(solo lectura)</span></button></li>
         <li><button class="archivo" data-archivo="Pedidos.java">Pedidos.java <span class="solo-lectura">(solo lectura)</span></button></li>
+        <li><button class="archivo archivo-raiz" data-archivo="LEEME.txt">LEEME.txt</button></li>
       </ul>
     </aside>
 
@@ -55,25 +56,19 @@
 
     <section class="vista panel-inferior">
       <div class="pestanas" role="tablist">
-        <button class="pestana" data-panel="guia" role="tab">Guía</button>
         <button class="pestana" data-panel="consola" role="tab">Console</button>
         <button class="pestana" data-panel="problemas" role="tab">Problems <span id="contador-problemas"></span></button>
         <button class="pestana solo-profesor" data-panel="diagnostico" role="tab">Diagnóstico</button>
       </div>
 
-      <div class="contenido-panel" id="panel-guia">
-        <ol class="guia">
-          <li>Espera a que la barra inferior indique <strong>Entorno listo</strong>.</li>
-          <li>Lee los requisitos al principio de <code>Almacen.java</code>, <code>Dependiente.java</code> y <code>Main.java</code>, y completa los TODO en ese orden. <code>Prenda</code> y <code>Pedidos</code> ya están hechos.</li>
-          <li>Pulsa <strong>Ejecutar</strong> o Ctrl+F11 cuando quieras. Si hay errores, la vista Problems señala el archivo y la línea; pulsa sobre el error para ir a él.</li>
-          <li>Cuando <code>Main</code> termine mostrando las ventas y el inventario, revisa tu código contra cada requisito: la corrección se hará después con pruebas que no ves aquí.</li>
-          <li>Pulsa <strong>Descargar entrega</strong> y sube el <code>.zip</code> a la tarea del Aula Virtual. Además de tu código, incluye un informe técnico del entorno (tiempos de carga y compilación) que nos sirve para evaluar el laboratorio.</li>
-        </ol>
-        <p class="nota">Si la página deja de responder durante más de un minuto, pulsa <strong>Reiniciar entorno</strong>: el código se conserva.</p>
-      </div>
-
       <div class="contenido-panel" id="panel-consola">
-        <pre id="console" class="consola"></pre>
+        <div class="consola-cabecera">
+          <span id="consola-titulo">No hay consolas para mostrar en este momento.</span>
+          <button id="btn-terminar" class="btn-terminar" disabled title="Terminar (recarga el entorno conservando el código)"></button>
+        </div>
+        <pre id="consola-visible" class="consola"></pre>
+        <!-- CheerpJ escribe en #console; solo se copia a la vista la salida del programa -->
+        <pre id="console" hidden></pre>
       </div>
 
       <div class="contenido-panel" id="panel-problemas">

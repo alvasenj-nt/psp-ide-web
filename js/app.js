@@ -12,13 +12,16 @@ const VERSION_ENTORNO = 'ENTORNO LABORATORIO JAVA WEB v1';
 // El diagnóstico completo solo se muestra abriendo la página con ?diagnostico
 const MODO_PROFESOR = new URLSearchParams(location.search).has('diagnostico');
 
+const JAVA = 'text/x-java';
 const ARCHIVOS = {
-  'Almacen.java': { ruta: 'java/proyecto/Almacen.java', soloLectura: false },
-  'Dependiente.java': { ruta: 'java/proyecto/Dependiente.java', soloLectura: false },
-  'Main.java': { ruta: 'java/proyecto/Main.java', soloLectura: false },
-  'Prenda.java': { ruta: 'java/proyecto/Prenda.java', soloLectura: true },
-  'Pedidos.java': { ruta: 'java/proyecto/Pedidos.java', soloLectura: true },
+  'Almacen.java': { ruta: 'java/proyecto/Almacen.java', soloLectura: false, modo: JAVA },
+  'Dependiente.java': { ruta: 'java/proyecto/Dependiente.java', soloLectura: false, modo: JAVA },
+  'Main.java': { ruta: 'java/proyecto/Main.java', soloLectura: false, modo: JAVA },
+  'Prenda.java': { ruta: 'java/proyecto/Prenda.java', soloLectura: true, modo: JAVA },
+  'Pedidos.java': { ruta: 'java/proyecto/Pedidos.java', soloLectura: true, modo: JAVA },
+  'LEEME.txt': { ruta: 'java/proyecto/LEEME.txt', soloLectura: true, modo: 'text/plain' },
 };
+const esJava = (n) => ARCHIVOS[n].modo === JAVA;
 const NOMBRE_ENTREGA = 'entrega_tienda_ropa.zip';
 
 const DIAGNOSTICOS = [
@@ -50,7 +53,7 @@ const estado = {
   plantillas: {},
   fuentesDiag: {},
   docs: {},
-  activo: 'Almacen.java',
+  activo: 'LEEME.txt',
   ocupado: false,
   inicioPagina: performance.now(),
   primeraCompilacion: null,
@@ -181,6 +184,7 @@ async function cargarFuentes() {
 // Coloreado semántico aproximado al de Eclipse: el modo Java de CodeMirror
 // solo distingue tokens léxicos, así que los atributos se deducen de las
 // declaraciones con modificador de acceso o static del archivo abierto.
+const MARCADO_APARICIONES = { showToken: /[\w$]/, minChars: 2 };
 const PRIMITIVOS = new Set(['byte', 'short', 'char', 'int', 'long', 'float', 'double', 'boolean', 'var']);
 const RE_CAMPO =/^[ \t]*((?:(?:public|protected|private|static|final|volatile|transient)\s+)+)[\w$<>[\],.?\s]+?\s+([A-Za-z_$][\w$]*)\s*(?:=|;)/gm;
 
@@ -214,19 +218,22 @@ const overlayEclipse = {
 
 let temporizadorCampos = null;
 function actualizarCampos() {
-  estado.campos = analizarCampos(editor.getValue());
   editor.removeOverlay(overlayEclipse);
+  if (!esJava(estado.activo)) return;
+  estado.campos = analizarCampos(editor.getValue());
   editor.addOverlay(overlayEclipse);
 }
 
 function crearEditor() {
   Object.keys(ARCHIVOS).forEach((n) => {
     const guardado = ARCHIVOS[n].soloLectura ? null : leerAlmacen('archivo:' + n);
-    estado.docs[n] = CodeMirror.Doc(guardado !== null ? guardado : estado.plantillas[n], 'text/x-java');
+    estado.docs[n] = CodeMirror.Doc(guardado !== null ? guardado : estado.plantillas[n], ARCHIVOS[n].modo);
   });
+  const ultimo = leerAlmacen('activo');
+  if (ultimo && ARCHIVOS[ultimo]) estado.activo = ultimo;
   editor = CodeMirror($('contenedor-editor'), {
     value: estado.docs[estado.activo],
-    mode: 'text/x-java',
+    mode: ARCHIVOS[estado.activo].modo,
     theme: 'eclipse',
     lineNumbers: true,
     indentUnit: 4,
@@ -234,7 +241,7 @@ function crearEditor() {
     matchBrackets: true,
     autoCloseBrackets: true,
     styleActiveLine: true,
-    highlightSelectionMatches: { showToken: /[\w$]/, minChars: 2 },
+    highlightSelectionMatches: MARCADO_APARICIONES,
     gutters: ['marcas-error', 'CodeMirror-linenumbers'],
     extraKeys: { Tab: (cm) => cm.replaceSelection('    ') },
   });
@@ -250,7 +257,10 @@ function crearEditor() {
 
 function abrirArchivo(nombre) {
   estado.activo = nombre;
+  escribirAlmacen('activo', nombre);
   editor.swapDoc(estado.docs[nombre]);
+  editor.setOption('mode', ARCHIVOS[nombre].modo);
+  editor.setOption('highlightSelectionMatches', esJava(nombre) ? MARCADO_APARICIONES : false);
   actualizarCampos();
   editor.setOption('readOnly', ARCHIVOS[nombre].soloLectura);
   $('pestana-editor').textContent = nombre + (ARCHIVOS[nombre].soloLectura ? ' (solo lectura)' : '');
@@ -259,7 +269,7 @@ function abrirArchivo(nombre) {
 }
 
 function fuentesProyecto() {
-  return Object.keys(ARCHIVOS).map((n) => ({ nombre: n, texto: estado.docs[n].getValue() }));
+  return Object.keys(ARCHIVOS).filter(esJava).map((n) => ({ nombre: n, texto: estado.docs[n].getValue() }));
 }
 
 function limpiarMarcas() {
@@ -313,20 +323,56 @@ function irALinea(archivo, linea) {
 
 // ---------- acciones ----------
 
+// ---------- consola al estilo Eclipse ----------
+
+const horaEclipse = (d) => d.toLocaleString('es-ES', {
+  day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
+});
+const LANZADOR = 'Main [Java Application] JVM del navegador (Java 8)';
+
+// Copia en directo a la vista Console lo que el programa escribe en #console
+function reflejarConsola() {
+  const origen = $('console');
+  const destino = $('consola-visible');
+  destino.textContent = '';
+  const observador = new MutationObserver(() => {
+    destino.textContent = origen.textContent;
+    destino.scrollTop = destino.scrollHeight;
+  });
+  observador.observe(origen, { childList: true, characterData: true, subtree: true });
+  return () => {
+    observador.disconnect();
+    destino.textContent = origen.textContent;
+  };
+}
+
 async function accionEjecutar() {
   await conBloqueo(async () => {
-    setEstado('Compilando...');
+    mostrarPanel('consola');
+    setEstado('Compilando el proyecto tienda-ropa...');
     const c = await compilar(fuentesProyecto());
     const errores = mostrarProblemas(c.problemas);
     if (c.codigo !== 0) {
       estado.metricas.conErrores++;
-      setEstado('Compilación fallida: ' + (errores || 'algún') + ' error(es) en ' + c.segundos.toFixed(1) + ' s');
+      setEstado('Hay errores en el proyecto: ' + (errores || 'algún') + ' error(es) de compilación. Revisa la vista Problems.');
       mostrarPanel('problemas');
       return;
     }
     setEstado('Ejecutando Main...');
-    mostrarPanel('consola');
-    const e = await ejecutar('Main');
+    const inicio = new Date();
+    $('consola-titulo').textContent = LANZADOR + ' (' + horaEclipse(inicio) + ')';
+    $('btn-terminar').disabled = false;
+    limpiarConsola();
+    const dejarDeReflejar = reflejarConsola();
+    let e;
+    try {
+      e = await ejecutar('Main');
+    } finally {
+      dejarDeReflejar();
+      $('btn-terminar').disabled = true;
+      $('consola-titulo').textContent = '<terminated> ' + LANZADOR + ' (' + horaEclipse(inicio) + ' – '
+        + horaEclipse(new Date()).split(', ').pop() + ')';
+    }
     const coherente = e.salida.match(/Inventario coherente: (\S+)/);
     const ventas = e.salida.match(/Ventas totales: (\d+)/);
     estado.resultados.tareaMain = coherente
@@ -500,7 +546,7 @@ function informeEntorno() {
 
 async function descargarEntrega() {
   const zip = new JSZip();
-  Object.keys(ARCHIVOS).forEach((n) => zip.file(n, estado.docs[n].getValue()));
+  Object.keys(ARCHIVOS).filter(esJava).forEach((n) => zip.file(n, estado.docs[n].getValue()));
   zip.file('informe_entorno.txt', informeEntorno());
   const blob = await zip.generateAsync({ type: 'blob' });
   const a = document.createElement('a');
@@ -528,6 +574,7 @@ function enlazarUI() {
   $('btn-descargar').addEventListener('click', descargarEntrega);
   $('btn-plantilla').addEventListener('click', restaurarPlantilla);
   $('btn-reiniciar').addEventListener('click', () => location.reload());
+  $('btn-terminar').addEventListener('click', () => location.reload());
   document.addEventListener('keydown', (ev) => {
     if (ev.ctrlKey && ev.key === 'F11') { ev.preventDefault(); if (!$('btn-ejecutar').disabled) accionEjecutar(); }
     if (ev.ctrlKey && (ev.key === 's' || ev.key === 'S')) { ev.preventDefault(); setEstado('Guardado automático activo.'); }
@@ -537,7 +584,7 @@ function enlazarUI() {
 async function iniciar() {
   document.body.classList.toggle('modo-profesor', MODO_PROFESOR);
   enlazarUI();
-  mostrarPanel('guia');
+  mostrarPanel('consola');
   pintarDiagnostico();
   try {
     await cargarFuentes();

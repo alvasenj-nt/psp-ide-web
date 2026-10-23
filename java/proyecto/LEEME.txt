@@ -1,0 +1,31 @@
+LABORATORIO JAVA PSP - UT2 - TIENDA DE ROPA
+===========================================
+
+Pasos
+-----
+
+1. Espera a que la barra inferior indique "Entorno listo".
+
+2. Lee los requisitos al principio de Almacen.java, Dependiente.java y
+   Main.java, y completa los TODO en ese orden. Prenda.java y Pedidos.java
+   ya están hechos y no se pueden modificar.
+
+3. Pulsa Ejecutar (o Ctrl+F11) cuando quieras:
+   - Si hay errores de compilación, se abre la vista Problems con el
+     archivo y la línea de cada error. Haz clic sobre el error para ir a él.
+   - Si compila, la salida del programa aparece en la vista Console.
+
+4. Cuando Main termine mostrando las ventas y el inventario, revisa tu
+   código contra cada requisito. La corrección se hará después con pruebas
+   que no ves aquí.
+
+5. Pulsa "Descargar entrega" y sube el .zip a la tarea del Aula Virtual.
+   Además de tu código, el .zip incluye un informe técnico del entorno
+   (tiempos de carga y compilación) que nos sirve para evaluar el
+   laboratorio.
+
+Si algo se bloquea
+------------------
+
+Si una ejecución no termina, pulsa el botón Terminar de la vista Console o
+"Reiniciar entorno": la página se recarga y tu código se conserva.

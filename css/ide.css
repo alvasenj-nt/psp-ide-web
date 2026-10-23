@@ -118,6 +118,7 @@ body {
 .archivo:hover { background: #eef3ef; }
 .archivo.activo { background: var(--acento-suave); outline: 1px solid var(--acento); }
 .solo-lectura { color: var(--texto-suave); font-size: 11px; }
+.archivo.archivo-raiz { padding-left: 20px; }
 
 #contenedor-editor { flex: 1; min-height: 0; }
 .CodeMirror { height: 100%; font-family: var(--mono); font-size: 13px; }
@@ -142,6 +143,39 @@ body {
 .contenido-panel { display: none; flex: 1; min-height: 0; overflow: auto; padding: 6px 10px; }
 .contenido-panel.activo { display: block; }
 
+#panel-consola.activo { display: flex; flex-direction: column; padding: 0; }
+.consola-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  border-bottom: 1px solid #e6e6e6;
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+.btn-terminar {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+}
+.btn-terminar::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  background: #c62828;
+  border-radius: 1px;
+}
+.btn-terminar:disabled { cursor: default; }
+.btn-terminar:disabled::after { background: #c9c9c9; }
+.btn-terminar:hover:not(:disabled) { border-color: var(--borde); }
+#consola-visible { flex: 1; overflow: auto; padding: 6px 10px; }
+
 .consola {
   margin: 0;
   font-family: var(--mono);
@@ -150,9 +184,6 @@ body {
   word-break: break-word;
 }
 
-.guia { margin: 4px 0; padding-left: 22px; }
-.guia li { margin-bottom: 4px; }
-.nota { color: var(--texto-suave); }
 code { font-family: var(--mono); background: #f1f1f1; padding: 0 3px; }
 
 table { border-collapse: collapse; width: 100%; }
