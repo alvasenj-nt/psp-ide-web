@@ -11,6 +11,9 @@ const VERSION_INFORME = 'INFORME LABORATORIO JAVA WEB v1';
 const VERSION_ENTORNO = 'ENTORNO LABORATORIO JAVA WEB v1';
 // El diagnóstico completo solo se muestra abriendo la página con ?diagnostico
 const MODO_PROFESOR = new URLSearchParams(location.search).has('diagnostico');
+// La entrega por defecto es pegar el código en el cuestionario; la descarga
+// en .zip (para una tarea sin SEB) solo se muestra con ?entrega=zip
+const ENTREGA_ZIP = new URLSearchParams(location.search).get('entrega') === 'zip';
 
 const JAVA = 'text/x-java';
 // La clave de cada archivo incluye su paquete; cada paquete es un ejercicio
@@ -640,6 +643,7 @@ function enlazarUI() {
 
 async function iniciar() {
   document.body.classList.toggle('modo-profesor', MODO_PROFESOR);
+  document.body.classList.toggle('entrega-zip', ENTREGA_ZIP);
   enlazarUI();
   mostrarPanel('consola');
   pintarDiagnostico();

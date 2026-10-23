@@ -4,7 +4,7 @@ Prueba de viabilidad de un entorno de programación Java que funciona en el nave
 
 - Compila con el `javac` real del JDK 8 ejecutado sobre [CheerpJ](https://cheerpj.com) (JVM en WebAssembly).
 - Muestra los errores de compilación con su línea y ejecuta `Main`. No muestra tests: la JVM del navegador planifica los hilos por turnos en un solo núcleo, así que un test de concurrencia daría aprobados falsos. La corrección se hace fuera, en una JVM real.
-- El alumno descarga su proyecto en un `.zip` para entregarlo en el Aula Virtual.
+- Entrega por cuestionario: el botón "Copiar código" copia el ejercicio abierto con un informe del entorno al final, para pegarlo en la pregunta de ensayo. Para una tarea sin SEB, abrir el laboratorio con `?entrega=zip` muestra además "Descargar entrega" (`.zip` del proyecto).
 - Editor con la paleta de Eclipse: palabras clave, atributos, estáticos y constantes coloreados, línea activa y marcado de apariciones. Los atributos se deducen de las declaraciones del archivo, así que el coloreado semántico es aproximado.
 - La entrega (`.zip`) incluye `informe_entorno.txt` con tiempos de carga y compilación, recogidos sin intervención del alumno.
 - Abriendo la página con `?diagnostico` aparece un diagnóstico completo para el profesor: tiempos, errores de compilación y fidelidad del modelo de hilos frente a una JVM real.
