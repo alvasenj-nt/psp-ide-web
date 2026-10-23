@@ -65,7 +65,7 @@ async function abrir(navegador, url) {
   await p.goto(url);
   await p.evaluate(() => { try { localStorage.clear(); } catch (e) { /* sin almacenamiento */ } });
   await p.reload();
-  await p.waitForFunction(() => /^(Entorno listo|No se pudo)/.test(document.getElementById('estado').textContent),
+  await p.waitForFunction(() => /^(Entorno listo|No se pudo|Esta práctica)/.test(document.getElementById('estado').textContent),
     { timeout: 240000 });
   return p;
 }
@@ -129,6 +129,11 @@ async function probarPractica(navegador, id, desde = 0) {
     const manifiesto = JSON.parse(fs.readFileSync(path.join(RAIZ, 'practicas', POR_DEFECTO, 'practica.json'), 'utf8'));
     comprobar('raíz', 'carga ' + POR_DEFECTO, subtitulo === manifiesto.titulo, subtitulo);
     await p.close();
+    // Cuestionario importado antes de publicar su práctica
+    const q = await abrir(navegador, BASE + '?p=zz-practica-no-publicada');
+    const aviso = await q.$eval('#estado', (e) => e.textContent);
+    comprobar('raíz', 'avisa de una práctica sin publicar', aviso.includes('todavía no está disponible'), aviso);
+    await q.close();
     for (const id of practicas) await probarPractica(navegador, id);
   } finally {
     await navegador.close();

@@ -221,7 +221,10 @@ async function cargarPractica() {
   if (!RE_ID.test(ID_PRACTICA)) throw new Error('identificador de práctica no válido');
   const base = 'practicas/' + ID_PRACTICA + '/';
   const r = await fetch(base + 'practica.json', { cache: 'no-cache' });
-  if (!r.ok) throw new Error('no existe la práctica ' + ID_PRACTICA + '. Revisa el enlace');
+  // Un 404 es lo normal si el cuestionario se abre antes de publicar la
+  // práctica: el iframe ya apunta a su URL definitiva
+  if (r.status === 404) throw Object.assign(new Error('práctica no publicada'), { noPublicada: true });
+  if (!r.ok) throw new Error('el servidor respondió ' + r.status);
   PRACTICA = validarManifiesto(await r.json());
   // Prefijo propio por práctica y versión: dos prácticas nunca comparten
   // el código guardado, y una versión nueva no muestra el esqueleto antiguo
@@ -711,7 +714,7 @@ async function descargarEntrega() {
 }
 
 function restaurarPlantilla() {
-  if (ARCHIVOS[estado.activo].soloLectura) return;
+  if (!ARCHIVOS[estado.activo] || ARCHIVOS[estado.activo].soloLectura) return;
   if (!confirm('Se perderán los cambios de ' + estado.activo + '. ¿Continuar?')) return;
   editor.setValue(estado.plantillas[estado.activo]);
 }
@@ -755,7 +758,12 @@ async function iniciar() {
   try {
     await cargarPractica();
   } catch (e) {
-    setEstado('No se pudo cargar la práctica: ' + e.message + '.');
+    const aviso = e.noPublicada
+      ? 'Esta práctica todavía no está disponible. Espera a que el profesor la abra y pulsa "Reiniciar entorno".'
+      : 'No se pudo cargar la práctica (' + e.message + '). Pulsa "Reiniciar entorno" y, si sigue igual, avisa al profesor.';
+    setEstado(aviso);
+    $('contenedor-editor').innerHTML = '<p class="aviso-practica"></p>';
+    document.querySelector('.aviso-practica').textContent = aviso;
     return;
   }
   construirExplorador();
