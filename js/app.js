@@ -6,29 +6,34 @@ const RAIZ_APP = '/app' + location.pathname.replace(/[^/]*$/, '');
 const LIB = RAIZ_APP + 'lib/';
 const CP_JAVAC = LIB + 'tools.jar';
 const CP_EJECUCION = ['/files/', LIB + 'junit-4.13.2.jar', LIB + 'hamcrest-core-1.3.jar'].join(':');
-const CLAVE = 'psp-ide-web:v5:';
 const VERSION_INFORME = 'INFORME LABORATORIO JAVA WEB v1';
 const VERSION_ENTORNO = 'ENTORNO LABORATORIO JAVA WEB v1';
+const PARAMETROS = new URLSearchParams(location.search);
 // El diagnóstico completo solo se muestra abriendo la página con ?diagnostico
-const MODO_PROFESOR = new URLSearchParams(location.search).has('diagnostico');
+const MODO_PROFESOR = PARAMETROS.has('diagnostico');
 // La entrega por defecto es pegar el código en el cuestionario; la descarga
 // en .zip (para una tarea sin SEB) solo se muestra con ?entrega=zip
-const ENTREGA_ZIP = new URLSearchParams(location.search).get('entrega') === 'zip';
+const ENTREGA_ZIP = PARAMETROS.get('entrega') === 'zip';
+
+// Cada práctica es una carpeta practicas/<id>/ con su manifiesto
+// practica.json. Se elige con ?p=<id>; sin parámetro se carga la tienda de
+// ropa, a la que apuntan los cuestionarios anteriores al catálogo.
+const PRACTICA_POR_DEFECTO = 'psp-ut2-tienda-ropa';
+const ID_PRACTICA = PARAMETROS.get('p') || PRACTICA_POR_DEFECTO;
+const RE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ESQUEMA_MAXIMO = 1;
 
 const JAVA = 'text/x-java';
-// La clave de cada archivo incluye su paquete; cada paquete es un ejercicio
-// independiente que se compila y se ejecuta por separado.
-const ARCHIVOS = {
-  'ejercicio1/Almacen.java': { ruta: 'java/proyecto/ejercicio1/Almacen.java', soloLectura: false, modo: JAVA },
-  'ejercicio1/Main.java': { ruta: 'java/proyecto/ejercicio1/Main.java', soloLectura: true, modo: JAVA },
-  'ejercicio2/Almacen.java': { ruta: 'java/proyecto/ejercicio2/Almacen.java', soloLectura: false, modo: JAVA },
-  'ejercicio2/Main.java': { ruta: 'java/proyecto/ejercicio2/Main.java', soloLectura: true, modo: JAVA },
-  'README.txt': { ruta: 'java/proyecto/README.txt', soloLectura: true, modo: 'text/plain' },
-};
+// Se rellenan a partir del manifiesto. La clave de cada archivo incluye su
+// paquete; cada paquete es un ejercicio independiente que se compila y se
+// ejecuta por separado.
+let PRACTICA = null;
+let CLAVE = null;
+let NOMBRE_ENTREGA = null;
+const ARCHIVOS = {};
 const esJava = (n) => ARCHIVOS[n].modo === JAVA;
 const paqueteDe = (n) => (n.includes('/') ? n.split('/')[0] : null);
 const nombreCorto = (n) => n.split('/').pop();
-const NOMBRE_ENTREGA = 'entrega_tienda_ropa.zip';
 
 const DIAGNOSTICOS = [
   'DiagEntorno', 'DiagErrorSintaxis', 'DiagErrorSemantico', 'DiagErrorSimbolo',
@@ -111,7 +116,7 @@ function actualizarEjecutar() {
   const paquete = paqueteDe(estado.activo);
   $('btn-ejecutar').disabled = estado.ocupado || !estado.listo || !paquete;
   $('btn-ejecutar').title = paquete
-    ? 'Compilar ' + paquete + ' y ejecutar su Main.java (Ctrl+F11)'
+    ? 'Compilar ' + paquete + ' y ejecutar su ' + principalDe(paquete) + '.java (Ctrl+F11)'
     : 'Abre un archivo de un ejercicio para ejecutarlo';
   $('btn-copiar-codigo').disabled = !paquete;
   $('btn-copiar-codigo').title = paquete
@@ -190,6 +195,100 @@ function claves(salida) {
     if (m) datos[m[1].trim()] = m[2].trim();
   });
   return datos;
+}
+
+// ---------- práctica ----------
+
+// El motor acepta todos los esquemas hasta ESQUEMA_MAXIMO: una práctica ya
+// publicada no se modifica, así que su manifiesto tiene que seguir siendo
+// válido con las versiones posteriores del motor.
+function validarManifiesto(m) {
+  const fallo = (motivo) => { throw new Error('manifiesto no válido: ' + motivo); };
+  if (!m || !Number.isInteger(m.esquema)) fallo('falta el número de esquema');
+  if (m.esquema > ESQUEMA_MAXIMO) fallo('el esquema ' + m.esquema + ' necesita una versión más reciente del laboratorio');
+  if (m.id !== ID_PRACTICA) fallo('el identificador no coincide con la carpeta');
+  if (!Number.isInteger(m.version) || m.version < 1) fallo('versión no válida');
+  if (!Array.isArray(m.ejercicios) || !m.ejercicios.length) fallo('no hay ejercicios');
+  m.ejercicios.forEach((ej) => {
+    if (!/^\w+$/.test(ej.paquete) || !/^\w+$/.test(ej.principal)) fallo('paquete o clase principal no válidos');
+    if (!ej.archivos.some((a) => a.nombre === ej.principal + '.java')) fallo(ej.paquete + ' no contiene su clase principal');
+    ej.archivos.forEach((a) => { if (!/^\w+\.java$/.test(a.nombre)) fallo('archivo no válido: ' + a.nombre); });
+  });
+  return m;
+}
+
+async function cargarPractica() {
+  if (!RE_ID.test(ID_PRACTICA)) throw new Error('identificador de práctica no válido');
+  const base = 'practicas/' + ID_PRACTICA + '/';
+  const r = await fetch(base + 'practica.json', { cache: 'no-cache' });
+  if (!r.ok) throw new Error('no existe la práctica ' + ID_PRACTICA + '. Revisa el enlace');
+  PRACTICA = validarManifiesto(await r.json());
+  // Prefijo propio por práctica y versión: dos prácticas nunca comparten
+  // el código guardado, y una versión nueva no muestra el esqueleto antiguo
+  CLAVE = PRACTICA.id + ':v' + PRACTICA.version + ':';
+  NOMBRE_ENTREGA = 'entrega_' + PRACTICA.proyecto.replace(/-/g, '_') + '.zip';
+  PRACTICA.ejercicios.forEach((ej) => ej.archivos.forEach((a) => {
+    ARCHIVOS[ej.paquete + '/' + a.nombre] = { ruta: base + ej.paquete + '/' + a.nombre, soloLectura: !a.editable, modo: JAVA };
+  }));
+  if (PRACTICA.readme) {
+    ARCHIVOS[PRACTICA.readme] = { ruta: base + PRACTICA.readme, soloLectura: true, modo: 'text/plain' };
+  }
+  estado.activo = PRACTICA.readme || Object.keys(ARCHIVOS)[0];
+  document.title = 'Laboratorio Java PSP · ' + PRACTICA.titulo;
+  document.querySelector('.subtitulo').textContent = PRACTICA.titulo;
+}
+
+const principalDe = (paquete) => PRACTICA.ejercicios.find((ej) => ej.paquete === paquete).principal;
+
+function construirExplorador() {
+  const arbol = document.querySelector('.arbol');
+  arbol.innerHTML = '';
+  const nodo = (clase, texto) => {
+    const li = document.createElement('li');
+    li.className = clase;
+    li.textContent = texto;
+    arbol.appendChild(li);
+  };
+  const archivo = (clave, clase) => {
+    const boton = document.createElement('button');
+    boton.className = 'archivo ' + clase;
+    boton.dataset.archivo = clave;
+    boton.textContent = nombreCorto(clave);
+    if (esJava(clave) && ARCHIVOS[clave].soloLectura) {
+      const marca = document.createElement('span');
+      marca.className = 'solo-lectura';
+      marca.textContent = '(solo lectura)';
+      boton.append(' ', marca);
+    }
+    boton.addEventListener('click', () => abrirArchivo(clave));
+    const li = document.createElement('li');
+    li.appendChild(boton);
+    arbol.appendChild(li);
+  };
+  nodo('nodo-proyecto', PRACTICA.proyecto);
+  nodo('nodo-carpeta', 'src');
+  PRACTICA.ejercicios.forEach((ej) => {
+    nodo('nodo-paquete', ej.paquete);
+    ej.archivos.forEach((a) => archivo(ej.paquete + '/' + a.nombre, 'archivo-paquete'));
+  });
+  if (PRACTICA.readme) archivo(PRACTICA.readme, 'archivo-raiz');
+}
+
+// Resumen de la última ejecución para el informe del entorno. Los patrones
+// del manifiesto son opcionales: sin ellos solo consta que Main terminó.
+function resumenEjecucion(paquete, salida, segundos) {
+  const extraer = (regla) => {
+    const m = regla && salida.match(new RegExp(regla.patron));
+    return m ? regla.texto.replace(/\$(\d)/g, (_, i) => m[Number(i)]) : null;
+  };
+  const resultado = extraer(PRACTICA.resultado);
+  const tiempo = extraer(PRACTICA.tiempo);
+  if (PRACTICA.resultado && !resultado) return { texto: paquete + ': Main no mostró el resultado', valor: 'aviso' };
+  return {
+    texto: paquete + (resultado ? ', ' + resultado : ', Main terminado') + (tiempo ? ', ' + tiempo : '')
+      + ', ' + segundos.toFixed(1) + ' s',
+    valor: 'ok',
+  };
 }
 
 // ---------- editor ----------
@@ -356,7 +455,7 @@ function irALinea(archivo, linea) {
 const horaEclipse = (d) => d.toLocaleString('es-ES', {
   day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
 });
-const lanzador = (paquete) => 'Main (' + paquete + ') [Java Application] JVM del navegador (Java 8)';
+const lanzador = (paquete) => principalDe(paquete) + ' (' + paquete + ') [Java Application] JVM del navegador (Java 8)';
 
 // Copia en directo a la vista Console lo que el programa escribe en #console
 function reflejarConsola() {
@@ -397,7 +496,7 @@ async function accionEjecutar() {
     const aviso = setTimeout(() => setEstado('La ejecución lleva más de 20 s. Si no avanza, pulsa Terminar en la vista Console.'), 20000);
     let e;
     try {
-      e = await ejecutar(paquete + '.Main');
+      e = await ejecutar(paquete + '.' + principalDe(paquete));
     } finally {
       clearTimeout(aviso);
       dejarDeReflejar();
@@ -405,12 +504,7 @@ async function accionEjecutar() {
       $('consola-titulo').textContent = '<terminated> ' + lanzador(paquete) + ' (' + horaEclipse(inicio) + ' – '
         + horaEclipse(new Date()).split(', ').pop() + ')';
     }
-    const coherente = e.salida.match(/Inventario coherente: (\S+)/);
-    const jornada = e.salida.match(/Tiempo de la jornada: (\d+) ms/);
-    estado.resultados.tareaMain = coherente
-      ? { texto: paquete + ', inventario coherente: ' + coherente[1] + (jornada ? ', jornada ' + jornada[1] + ' ms' : '')
-          + ', ' + e.segundos.toFixed(1) + ' s', valor: 'ok' }
-      : { texto: paquete + ': Main no mostró el resultado', valor: 'aviso' };
+    estado.resultados.tareaMain = resumenEjecucion(paquete, e.salida, e.segundos);
     estado.metricas.ejecuciones++;
     estado.metricas.ultimaEjecucion = estado.resultados.tareaMain.texto;
     pintarDiagnostico();
@@ -625,7 +719,6 @@ function restaurarPlantilla() {
 // ---------- arranque ----------
 
 function enlazarUI() {
-  document.querySelectorAll('.archivo').forEach((b) => b.addEventListener('click', () => abrirArchivo(b.dataset.archivo)));
   document.querySelectorAll('.pestana').forEach((p) => p.addEventListener('click', () => mostrarPanel(p.dataset.panel)));
   $('btn-ejecutar').addEventListener('click', accionEjecutar);
   $('btn-diagnostico').addEventListener('click', accionDiagnostico);
@@ -659,6 +752,13 @@ async function iniciar() {
   enlazarUI();
   mostrarPanel('consola');
   pintarDiagnostico();
+  try {
+    await cargarPractica();
+  } catch (e) {
+    setEstado('No se pudo cargar la práctica: ' + e.message + '.');
+    return;
+  }
+  construirExplorador();
   try {
     await cargarFuentes();
   } catch (e) {

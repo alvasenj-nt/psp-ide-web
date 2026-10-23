@@ -10,12 +10,40 @@ Prueba de viabilidad de un entorno de programación Java que funciona en el nave
 - Pensado para incrustarse en un cuestionario de Moodle con un `iframe` (`allowfullscreen` activa el botón "Pantalla completa").
 - Abriendo la página con `?diagnostico` aparece un diagnóstico completo para el profesor: tiempos, errores de compilación y fidelidad del modelo de hilos frente a una JVM real.
 
-Ejercicios actuales (UT2, tienda de ropa), cada uno en su paquete:
+## Prácticas
 
-- `ejercicio1`: el almacén compartido.
-- `ejercicio2`: ventas lentas en la tienda.
+Cada práctica es una carpeta `practicas/<id>/` con un manifiesto `practica.json`, y se abre con `?p=<id>`. Sin parámetro se carga `psp-ut2-tienda-ropa`, a la que apuntan los cuestionarios anteriores al catálogo. La raíz no lista las prácticas.
 
-En cada ejercicio el alumno implementa `Almacen.java`; `Main.java` es de solo lectura y pone en marcha la jornada. Ejecutar compila el paquete del archivo abierto y lanza su `Main.java`.
+Una práctica nueva no requiere tocar el motor: el manifiesto describe los ejercicios y el motor genera el explorador, los permisos de cada archivo, la ejecución y el almacenamiento local.
+
+```json
+{
+  "esquema": 1,
+  "id": "psp-ut2-tienda-ropa",
+  "version": 1,
+  "titulo": "UT2 · Tienda de ropa",
+  "proyecto": "tienda-ropa",
+  "readme": "README.txt",
+  "resultado": { "patron": "Inventario coherente: ([^ \n]+)", "texto": "inventario coherente: $1" },
+  "ejercicios": [
+    { "paquete": "ejercicio1", "principal": "Main",
+      "archivos": [ { "nombre": "Almacen.java", "editable": true },
+                    { "nombre": "Main.java", "editable": false } ] }
+  ]
+}
+```
+
+| Campo | Uso |
+|---|---|
+| `esquema` | Versión del formato del manifiesto. El motor admite todos los esquemas anteriores al suyo |
+| `id` | Igual que el nombre de la carpeta: `<módulo>-ut<n>-<tema>` |
+| `version` | Forma parte del prefijo del almacenamiento local (`<id>:v<version>:`) |
+| `titulo`, `proyecto` | Subtítulo de la barra superior y nombre del proyecto en el explorador |
+| `readme` | Archivo de texto de solo lectura en la raíz, abierto al entrar (opcional) |
+| `resultado`, `tiempo` | Patrones opcionales sobre la salida del programa principal para el informe del entorno |
+| `ejercicios` | Un paquete por ejercicio, su clase principal y sus archivos, editables o de solo lectura |
+
+Una práctica usada con alumnado no se modifica: un cambio posterior se publica como práctica nueva (`<id>-v2`). Cada publicación lleva la etiqueta Git `practica/<id>`.
 
 ## Publicación en GitHub Pages
 
@@ -35,7 +63,7 @@ CheerpJ carga los `.jar` con peticiones por rangos (`Range`), así que el servid
 | Ruta | Contenido |
 |---|---|
 | `index.html`, `css/`, `js/` | Interfaz y lógica |
-| `java/proyecto/` | Ejercicios por paquete (`ejercicio1`, `ejercicio2`) y `README.txt` con las instrucciones |
+| `practicas/<id>/` | Una práctica: manifiesto, `README.txt` y un paquete por ejercicio |
 | `java/diag/` | Programas del diagnóstico automático |
 | `lib/` | `tools.jar` (javac), y JUnit y Hamcrest para el diagnóstico |
 

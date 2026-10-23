@@ -1,0 +1,18 @@
+{
+  "esquema": 1,
+  "id": "psp-ut2-tienda-ropa",
+  "version": 1,
+  "titulo": "UT2 · Tienda de ropa",
+  "proyecto": "tienda-ropa",
+  "readme": "README.txt",
+  "resultado": { "patron": "Inventario coherente: ([^ \n]+)", "texto": "inventario coherente: $1" },
+  "tiempo": { "patron": "Tiempo de la jornada: ([0-9]+) ms", "texto": "jornada $1 ms" },
+  "ejercicios": [
+    { "paquete": "ejercicio1", "principal": "Main",
+      "archivos": [ { "nombre": "Almacen.java", "editable": true },
+                    { "nombre": "Main.java", "editable": false } ] },
+    { "paquete": "ejercicio2", "principal": "Main",
+      "archivos": [ { "nombre": "Almacen.java", "editable": true },
+                    { "nombre": "Main.java", "editable": false } ] }
+  ]
+}
