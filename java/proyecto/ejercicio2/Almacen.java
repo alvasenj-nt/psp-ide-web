@@ -14,8 +14,9 @@ package ejercicio2;
  * Tareas:
  * 1. Ejecuta el ejercicio y anota el tiempo de la jornada.
  * 2. Modifica esta clase para eliminar esas esperas innecesarias sin perder
- *    la corrección del inventario. No cambies la cabecera de los métodos
- *    públicos ni el comportamiento de cada uno.
+ *    la corrección del inventario. No cambies el nombre, los
+ *    parámetros ni el tipo de retorno de los métodos públicos, ni lo que
+ *    hace cada uno.
  * 3. Vuelve a ejecutar el ejercicio y compara el tiempo.
  */
 public class Almacen {

@@ -12,8 +12,9 @@ package ejercicio1;
  *
  * Tareas:
  * 1. Modifica esta clase para que el inventario sea siempre correcto, sin
- *    importar cuántos hilos la usen a la vez. No cambies la cabecera de los
- *    métodos públicos ni el comportamiento de cada uno.
+ *    importar cuántos hilos la usen a la vez. No cambies el nombre,
+ *    los parámetros ni el tipo de retorno de los métodos públicos, ni lo
+ *    que hace cada uno.
  * 2. Responde a las preguntas del comentario del final del archivo.
  */
 public class Almacen {

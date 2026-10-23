@@ -6,7 +6,7 @@ const RAIZ_APP = '/app' + location.pathname.replace(/[^/]*$/, '');
 const LIB = RAIZ_APP + 'lib/';
 const CP_JAVAC = LIB + 'tools.jar';
 const CP_EJECUCION = ['/files/', LIB + 'junit-4.13.2.jar', LIB + 'hamcrest-core-1.3.jar'].join(':');
-const CLAVE = 'psp-ide-web:v4:';
+const CLAVE = 'psp-ide-web:v5:';
 const VERSION_INFORME = 'INFORME LABORATORIO JAVA WEB v1';
 const VERSION_ENTORNO = 'ENTORNO LABORATORIO JAVA WEB v1';
 // El diagnóstico completo solo se muestra abriendo la página con ?diagnostico
