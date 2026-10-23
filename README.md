@@ -66,6 +66,7 @@ CheerpJ carga los `.jar` con peticiones por rangos (`Range`), así que el servid
 | `practicas/<id>/` | Una práctica: manifiesto, `README.txt` y un paquete por ejercicio |
 | `java/diag/` | Programas del diagnóstico automático |
 | `lib/` | `tools.jar` (javac), y JUnit y Hamcrest para el diagnóstico |
+| `pruebas/regresion.js`, `.github/workflows/` | Regresión de todas las prácticas en Chrome sin interfaz, en cada push |
 
 ## Licencias de terceros
 
