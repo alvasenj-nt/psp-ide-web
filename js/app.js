@@ -635,6 +635,18 @@ function enlazarUI() {
   $('btn-plantilla').addEventListener('click', restaurarPlantilla);
   $('btn-reiniciar').addEventListener('click', () => location.reload());
   $('btn-terminar').addEventListener('click', () => location.reload());
+  // Incrustado en el cuestionario (iframe), el laboratorio puede ocupar toda
+  // la pantalla si el iframe lo permite (atributo allowfullscreen)
+  if (window.self !== window.top && document.fullscreenEnabled) {
+    $('btn-pantalla-completa').hidden = false;
+    $('btn-pantalla-completa').addEventListener('click', () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(() => setEstado('El navegador no permite la pantalla completa.'));
+    });
+    document.addEventListener('fullscreenchange', () => {
+      $('btn-pantalla-completa').textContent = document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa';
+    });
+  }
   document.addEventListener('keydown', (ev) => {
     if (ev.ctrlKey && ev.key === 'F11') { ev.preventDefault(); if (!$('btn-ejecutar').disabled) accionEjecutar(); }
     if (ev.ctrlKey && (ev.key === 's' || ev.key === 'S')) { ev.preventDefault(); setEstado('Guardado automático activo.'); }

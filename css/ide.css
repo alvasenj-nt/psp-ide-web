@@ -63,6 +63,7 @@ body {
 }
 .btn:hover:not(:disabled) { background: #e9f3ec; border-color: var(--acento); }
 .btn:disabled { opacity: .5; cursor: default; }
+.btn[hidden] { display: none; }
 .btn-run { font-weight: 600; }
 
 .icono-run {

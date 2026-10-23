@@ -7,6 +7,7 @@ Prueba de viabilidad de un entorno de programación Java que funciona en el nave
 - Entrega por cuestionario: el botón "Copiar código" copia el ejercicio abierto con un informe del entorno al final, para pegarlo en la pregunta de ensayo. Para una tarea sin SEB, abrir el laboratorio con `?entrega=zip` muestra además "Descargar entrega" (`.zip` del proyecto).
 - Editor con la paleta de Eclipse: palabras clave, atributos, estáticos y constantes coloreados, línea activa y marcado de apariciones. Los atributos se deducen de las declaraciones del archivo, así que el coloreado semántico es aproximado.
 - La entrega (`.zip`) incluye `informe_entorno.txt` con tiempos de carga y compilación, recogidos sin intervención del alumno.
+- Pensado para incrustarse en un cuestionario de Moodle con un `iframe` (`allowfullscreen` activa el botón "Pantalla completa").
 - Abriendo la página con `?diagnostico` aparece un diagnóstico completo para el profesor: tiempos, errores de compilación y fidelidad del modelo de hilos frente a una JVM real.
 
 Ejercicios actuales (UT2, tienda de ropa), cada uno en su paquete:
