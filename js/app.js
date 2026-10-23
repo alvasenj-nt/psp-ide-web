@@ -6,7 +6,7 @@ const RAIZ_APP = '/app' + location.pathname.replace(/[^/]*$/, '');
 const LIB = RAIZ_APP + 'lib/';
 const CP_JAVAC = LIB + 'tools.jar';
 const CP_EJECUCION = ['/files/', LIB + 'junit-4.13.2.jar', LIB + 'hamcrest-core-1.3.jar'].join(':');
-const CLAVE = 'psp-ide-web:v3:';
+const CLAVE = 'psp-ide-web:v4:';
 const VERSION_INFORME = 'INFORME LABORATORIO JAVA WEB v1';
 const VERSION_ENTORNO = 'ENTORNO LABORATORIO JAVA WEB v1';
 // El diagnóstico completo solo se muestra abriendo la página con ?diagnostico
@@ -20,7 +20,7 @@ const ARCHIVOS = {
   'ejercicio1/Main.java': { ruta: 'java/proyecto/ejercicio1/Main.java', soloLectura: true, modo: JAVA },
   'ejercicio2/Almacen.java': { ruta: 'java/proyecto/ejercicio2/Almacen.java', soloLectura: false, modo: JAVA },
   'ejercicio2/Main.java': { ruta: 'java/proyecto/ejercicio2/Main.java', soloLectura: true, modo: JAVA },
-  'LEEME.txt': { ruta: 'java/proyecto/LEEME.txt', soloLectura: true, modo: 'text/plain' },
+  'README.txt': { ruta: 'java/proyecto/README.txt', soloLectura: true, modo: 'text/plain' },
 };
 const esJava = (n) => ARCHIVOS[n].modo === JAVA;
 const paqueteDe = (n) => (n.includes('/') ? n.split('/')[0] : null);
@@ -56,7 +56,7 @@ const estado = {
   plantillas: {},
   fuentesDiag: {},
   docs: {},
-  activo: 'LEEME.txt',
+  activo: 'README.txt',
   ocupado: false,
   listo: false,
   inicioPagina: performance.now(),
@@ -103,12 +103,13 @@ function mostrarPanel(nombre) {
   document.querySelectorAll('.contenido-panel').forEach((c) => c.classList.toggle('activo', c.id === 'panel-' + nombre));
 }
 
+// Se puede ejecutar desde cualquier archivo de un ejercicio (Almacen o Main)
 function actualizarEjecutar() {
-  const soloLectura = ARCHIVOS[estado.activo].soloLectura;
-  $('btn-ejecutar').disabled = estado.ocupado || !estado.listo || soloLectura;
-  $('btn-ejecutar').title = soloLectura
-    ? 'Abre el Almacen.java de un ejercicio para ejecutarlo'
-    : 'Compilar el ejercicio y ejecutar su Main (Ctrl+F11)';
+  const paquete = paqueteDe(estado.activo);
+  $('btn-ejecutar').disabled = estado.ocupado || !estado.listo || !paquete;
+  $('btn-ejecutar').title = paquete
+    ? 'Compilar ' + paquete + ' y ejecutar su Main.java (Ctrl+F11)'
+    : 'Abre un archivo de un ejercicio para ejecutarlo';
 }
 
 function bloquearBotones(bloquear) {
@@ -368,7 +369,7 @@ function reflejarConsola() {
 
 async function accionEjecutar() {
   const paquete = paqueteDe(estado.activo);
-  if (!paquete || ARCHIVOS[estado.activo].soloLectura) return;
+  if (!paquete) return;
   await conBloqueo(async () => {
     mostrarPanel('consola');
     setEstado('Compilando ' + paquete + '...');

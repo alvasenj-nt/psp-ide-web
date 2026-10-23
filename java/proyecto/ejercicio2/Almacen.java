@@ -1,23 +1,22 @@
 package ejercicio2;
 
 /**
- * Ejercicio 2: un cerrojo por prenda.
+ * Ejercicio 2: ventas lentas en la tienda.
  *
- * Este almacén ya no pierde datos: cada método envuelve todo su cuerpo en
- * synchronized (this), que equivale a declarar el método synchronized. El
- * problema es que todas las operaciones usan el mismo cerrojo: mientras
- * alguien vende una camiseta, quien vende un pantalón tiene que esperar
- * aunque no compartan ningún dato. Además, cada venta registra el ticket,
- * una operación lenta, dentro de la zona protegida.
+ * El almacén de camisetas y pantalones mantiene siempre un inventario
+ * correcto, pero el equipo de la tienda ha detectado que las ventas tardan
+ * más de lo debido:
+ * - Mientras un dependiente vende una camiseta, el que vende pantalones se
+ *   queda esperando, aunque las dos prendas no tengan nada que ver.
+ * - Mientras se imprime el ticket de una venta, ningún otro dependiente
+ *   puede avanzar.
  *
  * Tareas:
- * 1. Ejecuta Main y anota el tiempo de la jornada.
- * 2. Declara dos cerrojos privados y finales: cerrojoCamisetas y
- *    cerrojoPantalones.
- * 3. Sustituye synchronized (this) por el cerrojo de la prenda que toca cada
- *    método, y deja dentro de cada bloque solo las líneas que leen o
- *    modifican el stock. registrarTicket() debe quedar fuera de los bloques.
- * 4. Vuelve a ejecutar Main y compara el tiempo.
+ * 1. Ejecuta el ejercicio y anota el tiempo de la jornada.
+ * 2. Modifica esta clase para eliminar esas esperas innecesarias sin perder
+ *    la corrección del inventario. No cambies la cabecera de los métodos
+ *    públicos ni el comportamiento de cada uno.
+ * 3. Vuelve a ejecutar el ejercicio y compara el tiempo.
  */
 public class Almacen {
 
@@ -41,26 +40,26 @@ public class Almacen {
         }
     }
 
-    /** Si queda alguna camiseta, la vende, registra el ticket y devuelve true. */
+    /** Si queda alguna camiseta, la vende, imprime el ticket y devuelve true. */
     public boolean venderCamiseta() {
         synchronized (this) {
             if (camisetas == 0) {
                 return false;
             }
             camisetas--;
-            registrarTicket("camiseta");
+            imprimirTicket("camiseta");
             return true;
         }
     }
 
-    /** Si queda algún pantalón, lo vende, registra el ticket y devuelve true. */
+    /** Si queda algún pantalón, lo vende, imprime el ticket y devuelve true. */
     public boolean venderPantalon() {
         synchronized (this) {
             if (pantalones == 0) {
                 return false;
             }
             pantalones--;
-            registrarTicket("pantalón");
+            imprimirTicket("pantalón");
             return true;
         }
     }
@@ -77,8 +76,8 @@ public class Almacen {
         }
     }
 
-    /** Simula la impresión del ticket: tarda unos milisegundos y no toca el stock. */
-    private void registrarTicket(String prenda) {
+    /** Imprime el ticket de una venta. */
+    private void imprimirTicket(String prenda) {
         try {
             Thread.sleep(2);
         } catch (InterruptedException e) {

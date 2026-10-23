@@ -11,12 +11,10 @@ Prueba de viabilidad de un entorno de programación Java que funciona en el nave
 
 Ejercicios actuales (UT2, tienda de ropa), cada uno en su paquete:
 
-- `ejercicio1`: proteger con `synchronized` un almacén compartido por reponedores y dependientes.
-- `ejercicio2`: sustituir `synchronized (this)` por un cerrojo dedicado por prenda.
+- `ejercicio1`: el almacén compartido.
+- `ejercicio2`: ventas lentas en la tienda.
 
-En cada ejercicio solo se edita `Almacen.java`; Ejecutar compila el paquete del archivo abierto y lanza su `Main`, y está desactivado en los archivos de solo lectura.
-
-Limitación conocida de CheerpJ 4.3: dos métodos distintos declarados `synchronized` que compiten por el mismo objeto mientras el que tiene el monitor ejecuta `Thread.sleep()` provocan un `ArrayIndexOutOfBoundsException` interno y el programa se cuelga. Con bloques `synchronized` no ocurre.
+En cada ejercicio el alumno implementa `Almacen.java`; `Main.java` es de solo lectura y pone en marcha la jornada. Ejecutar compila el paquete del archivo abierto y lanza su `Main.java`.
 
 ## Publicación en GitHub Pages
 
@@ -36,7 +34,7 @@ CheerpJ carga los `.jar` con peticiones por rangos (`Range`), así que el servid
 | Ruta | Contenido |
 |---|---|
 | `index.html`, `css/`, `js/` | Interfaz y lógica |
-| `java/proyecto/` | Ejercicios por paquete (`ejercicio1`, `ejercicio2`) y `LEEME.txt` |
+| `java/proyecto/` | Ejercicios por paquete (`ejercicio1`, `ejercicio2`) y `README.txt` con las instrucciones |
 | `java/diag/` | Programas del diagnóstico automático |
 | `lib/` | `tools.jar` (javac), y JUnit y Hamcrest para el diagnóstico |
 

@@ -1,7 +1,14 @@
 package ejercicio2;
 
 /**
- * Jornada del ejercicio 2. No modificar.
+ * Jornada del ejercicio 2 (solo lectura).
+ *
+ * Crea un almacén con 150 camisetas y 150 pantalones y pone a trabajar a la
+ * vez cuatro dependientes: dos venden camisetas y dos venden pantalones,
+ * hasta 100 ventas cada uno.
+ *
+ * Cuando terminan todos, muestra las ventas de cada prenda, comprueba que
+ * el inventario cuadra y muestra el tiempo total de la jornada.
  */
 public class Main {
 

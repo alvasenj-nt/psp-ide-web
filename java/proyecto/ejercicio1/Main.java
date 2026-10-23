@@ -1,7 +1,15 @@
 package ejercicio1;
 
 /**
- * Jornada del ejercicio 1. No modificar.
+ * Jornada del ejercicio 1 (solo lectura).
+ *
+ * Crea un almacén con 5.000 camisetas y pone a trabajar a la vez cuatro
+ * hilos sobre él: dos reponedores, que reponen 10.000 camisetas cada uno, y
+ * dos dependientes, que intentan vender 8.000 camisetas cada uno.
+ *
+ * Cuando terminan todos, muestra las camisetas repuestas y vendidas y
+ * comprueba si el stock real coincide con el esperado
+ * (inicial + repuestas - vendidas) y no es negativo.
  */
 public class Main {
 

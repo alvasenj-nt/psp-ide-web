@@ -3,16 +3,17 @@ package ejercicio1;
 /**
  * Ejercicio 1: el almacén compartido.
  *
- * Dos reponedores y dos dependientes trabajan a la vez sobre el mismo
- * almacén de camisetas. Cada reponedor repone 10.000 camisetas, una a una,
- * y cada dependiente intenta vender 8.000, una a una, partiendo de un stock
- * de 5.000 camisetas (lo puedes ver en Main).
+ * La tienda tiene un almacén de camisetas que usan a la vez dos reponedores
+ * y dos dependientes, cada uno en su propio hilo (consulta Main.java).
  *
- * Tal como está, el almacén tiene condiciones de carrera: en una JVM real se
- * pierden reposiciones y pueden venderse camisetas que no existen.
+ * Tras varias jornadas, el inventario no cuadra: el stock final no coincide
+ * con el inicial más las camisetas repuestas menos las vendidas, y alguna
+ * vez se han vendido camisetas que no existían.
  *
  * Tareas:
- * 1. Protege con synchronized la zona crítica de cada método.
+ * 1. Modifica esta clase para que el inventario sea siempre correcto, sin
+ *    importar cuántos hilos la usen a la vez. No cambies la cabecera de los
+ *    métodos públicos ni el comportamiento de cada uno.
  * 2. Responde a las preguntas del comentario del final del archivo.
  */
 public class Almacen {
@@ -45,11 +46,11 @@ public class Almacen {
 /*
  * Respuestas:
  *
- * 1. Con synchronized en los métodos de instancia, ¿qué objeto concreto
- *    actúa como cerrojo?
+ * 1. ¿Qué mecanismo has utilizado para resolver el problema y sobre qué
+ *    objeto concreto actúa?
  *
  *
- * 2. ¿Por qué en vender() la comprobación (camisetas > 0) y el descuento
- *    (camisetas--) tienen que quedar dentro de la misma zona sincronizada?
+ * 2. Explica qué problema concreto podía producirse en vender() y por qué
+ *    tu solución lo evita.
  *
  */
