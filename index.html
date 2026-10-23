@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Laboratorio Java PSP</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="css/ide.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
+</head>
+<body>
+  <header class="barra-menu">
+    <span class="marca">Laboratorio Java PSP</span>
+    <span class="subtitulo">Prueba de viabilidad del entorno web</span>
+  </header>
+
+  <nav class="barra-herramientas" aria-label="Acciones">
+    <button id="btn-ejecutar" class="btn btn-run" disabled title="Compilar y ejecutar Main (Ctrl+F11)"><span class="icono-run"></span>Ejecutar</button>
+    <button id="btn-tests" class="btn" disabled title="Compilar y ejecutar los tests JUnit"><span class="icono-test"></span>Ejecutar tests</button>
+    <span class="separador"></span>
+    <button id="btn-diagnostico" class="btn" disabled title="Batería automática de pruebas del entorno">Diagnóstico automático</button>
+    <span class="separador"></span>
+    <button id="btn-descargar" class="btn" title="Descargar el archivo abierto">Descargar archivo</button>
+    <button id="btn-plantilla" class="btn" title="Volver al código inicial del archivo abierto">Restaurar plantilla</button>
+    <button id="btn-reiniciar" class="btn" title="Recargar la página conservando el código">Reiniciar entorno</button>
+  </nav>
+
+  <main class="espacio">
+    <aside class="vista explorador">
+      <div class="vista-titulo">Package Explorer</div>
+      <ul class="arbol">
+        <li class="nodo-proyecto">psp-laboratorio</li>
+        <li class="nodo-carpeta">src</li>
+        <li><button class="archivo" data-archivo="CuentaBancaria.java">CuentaBancaria.java</button></li>
+        <li><button class="archivo" data-archivo="Main.java">Main.java</button></li>
+        <li class="nodo-carpeta">test</li>
+        <li><button class="archivo" data-archivo="CuentaBancariaTest.java">CuentaBancariaTest.java <span class="solo-lectura">(solo lectura)</span></button></li>
+      </ul>
+    </aside>
+
+    <section class="vista editor">
+      <div class="pestanas-editor" id="pestana-editor">CuentaBancaria.java</div>
+      <div id="contenedor-editor"></div>
+    </section>
+
+    <section class="vista panel-inferior">
+      <div class="pestanas" role="tablist">
+        <button class="pestana" data-panel="guia" role="tab">Guía de la prueba</button>
+        <button class="pestana" data-panel="consola" role="tab">Console</button>
+        <button class="pestana" data-panel="problemas" role="tab">Problems <span id="contador-problemas"></span></button>
+        <button class="pestana" data-panel="junit" role="tab">JUnit</button>
+        <button class="pestana" data-panel="diagnostico" role="tab">Diagnóstico</button>
+      </div>
+
+      <div class="contenido-panel" id="panel-guia">
+        <ol class="guia">
+          <li>Espera a que la barra inferior indique <strong>Entorno listo</strong>. El tiempo de carga se mide solo.</li>
+          <li>Pulsa <strong>Diagnóstico automático</strong> y no toques nada hasta que termine (dos o tres minutos).</li>
+          <li>Abre <code>CuentaBancaria.java</code> e implementa <code>ingresar()</code> sin ninguna protección. Ejecuta <code>Main</code> con <strong>Ejecutar</strong> o Ctrl+F11 y anota los ingresos perdidos, sean los que sean: es uno de los datos que estamos midiendo.</li>
+          <li>Borra un punto y coma y vuelve a ejecutar. Comprueba que la vista Problems señala la línea y corrígelo.</li>
+          <li>Pulsa <strong>Ejecutar tests</strong> y revisa la vista JUnit.</li>
+          <li>Declara <code>ingresar()</code> como <code>synchronized</code> y repite la ejecución y los tests.</li>
+          <li>En Eclipse, en tu máquina virtual, crea las mismas clases con <code>ingresar()</code> sin proteger, ejecuta <code>Main</code> y anota los ingresos perdidos en la pestaña Diagnóstico. Puedes bajar cada archivo con <strong>Descargar archivo</strong>. Compara el resultado con el del navegador: lo comentaremos al final.</li>
+          <li>En la pestaña Diagnóstico pulsa <strong>Copiar informe</strong> y pégalo en la tarea del Aula Virtual.</li>
+        </ol>
+        <p class="nota">Si la página deja de responder durante más de un minuto, pulsa <strong>Reiniciar entorno</strong>: el código se conserva.</p>
+      </div>
+
+      <div class="contenido-panel" id="panel-consola">
+        <pre id="console" class="consola"></pre>
+      </div>
+
+      <div class="contenido-panel" id="panel-problemas">
+        <table class="tabla-problemas">
+          <thead><tr><th>Descripción</th><th>Recurso</th><th>Línea</th></tr></thead>
+          <tbody id="lista-problemas"></tbody>
+        </table>
+      </div>
+
+      <div class="contenido-panel" id="panel-junit">
+        <div id="junit-resumen" class="junit-resumen">Sin ejecuciones.</div>
+        <div id="junit-barra" class="junit-barra"></div>
+        <pre id="junit-detalle" class="consola"></pre>
+      </div>
+
+      <div class="contenido-panel" id="panel-diagnostico">
+        <div class="diag-cabecera">
+          <label>Equipo
+            <select id="diag-equipo">
+              <option value="aula">Ordenador del aula</option>
+              <option value="portatil">Portátil propio</option>
+            </select>
+          </label>
+          <label>Ingresos perdidos en Eclipse (JVM real)
+            <input id="diag-eclipse" type="text" inputmode="numeric" placeholder="por ejemplo 153201">
+          </label>
+          <button id="btn-copiar" class="btn">Copiar informe</button>
+        </div>
+        <table class="tabla-diag">
+          <thead><tr><th>Prueba</th><th>Resultado</th><th>Valoración</th></tr></thead>
+          <tbody id="lista-diag"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="barra-estado">
+    <span id="estado">Cargando la máquina virtual Java...</span>
+    <span id="cronometro"></span>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
