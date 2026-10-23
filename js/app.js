@@ -8,6 +8,9 @@ const CP_JAVAC = LIB + 'tools.jar';
 const CP_EJECUCION = ['/files/', LIB + 'junit-4.13.2.jar', LIB + 'hamcrest-core-1.3.jar'].join(':');
 const CLAVE = 'psp-ide-web:v2:';
 const VERSION_INFORME = 'INFORME LABORATORIO JAVA WEB v1';
+const VERSION_ENTORNO = 'ENTORNO LABORATORIO JAVA WEB v1';
+// El diagnóstico completo solo se muestra abriendo la página con ?diagnostico
+const MODO_PROFESOR = new URLSearchParams(location.search).has('diagnostico');
 
 const ARCHIVOS = {
   'Almacen.java': { ruta: 'java/proyecto/Almacen.java', soloLectura: false },
@@ -53,6 +56,9 @@ const estado = {
   primeraCompilacion: null,
   marcasError: [],
   resultados: {},
+  // Métricas que viajan en la entrega sin intervención del alumno
+  metricas: { carga: null, compilaciones: [], conErrores: 0, ejecuciones: 0, ultimaEjecucion: 'sin ejecutar' },
+  campos: { instancia: new Set(), estaticos: new Set() },
 };
 
 const codificador = new TextEncoder();
@@ -130,6 +136,7 @@ async function compilar(fuentes) {
   await pausa(50);
   const segundos = (performance.now() - t0) / 1000;
   if (estado.primeraCompilacion === null) estado.primeraCompilacion = segundos;
+  estado.metricas.compilaciones.push(segundos);
   const salida = leerConsola();
   return { codigo, salida, segundos, problemas: analizarProblemas(salida) };
 }
@@ -171,6 +178,47 @@ async function cargarFuentes() {
   DIAGNOSTICOS.forEach((d, i) => { estado.fuentesDiag[d] = diag[i]; });
 }
 
+// Coloreado semántico aproximado al de Eclipse: el modo Java de CodeMirror
+// solo distingue tokens léxicos, así que los atributos se deducen de las
+// declaraciones con modificador de acceso o static del archivo abierto.
+const PRIMITIVOS = new Set(['byte', 'short', 'char', 'int', 'long', 'float', 'double', 'boolean', 'var']);
+const RE_CAMPO =/^[ \t]*((?:(?:public|protected|private|static|final|volatile|transient)\s+)+)[\w$<>[\],.?\s]+?\s+([A-Za-z_$][\w$]*)\s*(?:=|;)/gm;
+
+function analizarCampos(texto) {
+  const instancia = new Set();
+  const estaticos = new Set();
+  let m;
+  RE_CAMPO.lastIndex = 0;
+  while ((m = RE_CAMPO.exec(texto)) !== null) {
+    if (!/\b(public|protected|private|static)\b/.test(m[1])) continue;
+    (/\bstatic\b/.test(m[1]) ? estaticos : instancia).add(m[2]);
+  }
+  return { instancia, estaticos };
+}
+
+const overlayEclipse = {
+  token(stream) {
+    if (stream.match(/^[A-Za-z_$][\w$]*/)) {
+      const palabra = stream.current();
+      const antes = stream.string.slice(0, stream.start);
+      if (PRIMITIVOS.has(palabra)) return 'primitivo';
+      if (/^[A-Z][A-Z0-9_]+$/.test(palabra)) return 'constante';
+      if (estado.campos.estaticos.has(palabra)) return 'campo-estatico';
+      if (estado.campos.instancia.has(palabra) || /\bthis\s*\.\s*$/.test(antes)) return 'campo';
+      return null;
+    }
+    stream.next();
+    return null;
+  },
+};
+
+let temporizadorCampos = null;
+function actualizarCampos() {
+  estado.campos = analizarCampos(editor.getValue());
+  editor.removeOverlay(overlayEclipse);
+  editor.addOverlay(overlayEclipse);
+}
+
 function crearEditor() {
   Object.keys(ARCHIVOS).forEach((n) => {
     const guardado = ARCHIVOS[n].soloLectura ? null : leerAlmacen('archivo:' + n);
@@ -178,11 +226,15 @@ function crearEditor() {
   });
   editor = CodeMirror($('contenedor-editor'), {
     value: estado.docs[estado.activo],
+    mode: 'text/x-java',
+    theme: 'eclipse',
     lineNumbers: true,
     indentUnit: 4,
     tabSize: 4,
     matchBrackets: true,
     autoCloseBrackets: true,
+    styleActiveLine: true,
+    highlightSelectionMatches: { showToken: /[\w$]/, minChars: 2 },
     gutters: ['marcas-error', 'CodeMirror-linenumbers'],
     extraKeys: { Tab: (cm) => cm.replaceSelection('    ') },
   });
@@ -191,12 +243,15 @@ function crearEditor() {
     if (!ARCHIVOS[estado.activo].soloLectura) {
       escribirAlmacen('archivo:' + estado.activo, editor.getValue());
     }
+    clearTimeout(temporizadorCampos);
+    temporizadorCampos = setTimeout(actualizarCampos, 300);
   });
 }
 
 function abrirArchivo(nombre) {
   estado.activo = nombre;
   editor.swapDoc(estado.docs[nombre]);
+  actualizarCampos();
   editor.setOption('readOnly', ARCHIVOS[nombre].soloLectura);
   $('pestana-editor').textContent = nombre + (ARCHIVOS[nombre].soloLectura ? ' (solo lectura)' : '');
   document.querySelectorAll('.archivo').forEach((b) => b.classList.toggle('activo', b.dataset.archivo === nombre));
@@ -264,6 +319,7 @@ async function accionEjecutar() {
     const c = await compilar(fuentesProyecto());
     const errores = mostrarProblemas(c.problemas);
     if (c.codigo !== 0) {
+      estado.metricas.conErrores++;
       setEstado('Compilación fallida: ' + (errores || 'algún') + ' error(es) en ' + c.segundos.toFixed(1) + ' s');
       mostrarPanel('problemas');
       return;
@@ -276,6 +332,8 @@ async function accionEjecutar() {
     estado.resultados.tareaMain = coherente
       ? { texto: 'ventas ' + (ventas ? ventas[1] : '?') + ', inventario coherente: ' + coherente[1] + ', ' + e.segundos.toFixed(1) + ' s', valor: 'ok' }
       : { texto: 'Main no mostró el resultado de la jornada', valor: 'aviso' };
+    estado.metricas.ejecuciones++;
+    estado.metricas.ultimaEjecucion = estado.resultados.tareaMain.texto;
     pintarDiagnostico();
     setEstado('Main terminado. Compilación ' + c.segundos.toFixed(1) + ' s, ejecución ' + e.segundos.toFixed(1) + ' s');
   });
@@ -398,9 +456,7 @@ async function accionDiagnostico() {
 
 function textoInforme() {
   const lineas = [VERSION_INFORME];
-  lineas.push('equipo=' + $('diag-equipo').value);
   lineas.push('navegador=' + navigator.userAgent);
-  lineas.push('eclipse=' + $('diag-eclipse').value);
   PRUEBAS.forEach(([id]) => {
     const r = estado.resultados[id];
     lineas.push(id + '=' + (r ? r.valor + ' | ' + r.texto : 'pendiente'));
@@ -423,9 +479,29 @@ async function copiarInforme() {
   setEstado('Informe copiado. Pégalo en la tarea del Aula Virtual.');
 }
 
+function informeEntorno() {
+  const m = estado.metricas;
+  const siguientes = m.compilaciones.slice(1);
+  const media = siguientes.length ? siguientes.reduce((a, b) => a + b, 0) / siguientes.length : null;
+  return [
+    VERSION_ENTORNO,
+    'fecha=' + new Date().toISOString(),
+    'navegador=' + navigator.userAgent,
+    'nucleos=' + (navigator.hardwareConcurrency || '?'),
+    'carga_s=' + (m.carga === null ? '?' : m.carga.toFixed(1)),
+    'primera_compilacion_s=' + (m.compilaciones.length ? m.compilaciones[0].toFixed(1) : '?'),
+    'compilacion_media_s=' + (media === null ? '?' : media.toFixed(1)),
+    'compilaciones=' + m.compilaciones.length,
+    'compilaciones_con_error=' + m.conErrores,
+    'ejecuciones=' + m.ejecuciones,
+    'ultima_ejecucion=' + m.ultimaEjecucion,
+  ].join('\n') + '\n';
+}
+
 async function descargarEntrega() {
   const zip = new JSZip();
   Object.keys(ARCHIVOS).forEach((n) => zip.file(n, estado.docs[n].getValue()));
+  zip.file('informe_entorno.txt', informeEntorno());
   const blob = await zip.generateAsync({ type: 'blob' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -452,11 +528,6 @@ function enlazarUI() {
   $('btn-descargar').addEventListener('click', descargarEntrega);
   $('btn-plantilla').addEventListener('click', restaurarPlantilla);
   $('btn-reiniciar').addEventListener('click', () => location.reload());
-  ['diag-equipo', 'diag-eclipse'].forEach((id) => {
-    const guardado = leerAlmacen(id);
-    if (guardado !== null) $(id).value = guardado;
-    $(id).addEventListener('change', () => escribirAlmacen(id, $(id).value));
-  });
   document.addEventListener('keydown', (ev) => {
     if (ev.ctrlKey && ev.key === 'F11') { ev.preventDefault(); if (!$('btn-ejecutar').disabled) accionEjecutar(); }
     if (ev.ctrlKey && (ev.key === 's' || ev.key === 'S')) { ev.preventDefault(); setEstado('Guardado automático activo.'); }
@@ -464,6 +535,7 @@ function enlazarUI() {
 }
 
 async function iniciar() {
+  document.body.classList.toggle('modo-profesor', MODO_PROFESOR);
   enlazarUI();
   mostrarPanel('guia');
   pintarDiagnostico();
@@ -482,9 +554,10 @@ async function iniciar() {
     return;
   }
   const segundos = (performance.now() - estado.inicioPagina) / 1000;
+  estado.metricas.carga = segundos;
   registrar('carga', segundos.toFixed(1) + ' s', umbral(segundos, 20, 60));
   bloquearBotones(false);
-  setEstado('Entorno listo (' + segundos.toFixed(1) + ' s). Sigue la guía de la prueba.');
+  setEstado('Entorno listo. La primera compilación tarda unos segundos más que las siguientes.');
 }
 
 iniciar();

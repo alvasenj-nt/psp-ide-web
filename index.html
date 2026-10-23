@@ -6,24 +6,28 @@
   <link rel="icon" href="data:,">
   <title>Laboratorio Java PSP</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css">
   <link rel="stylesheet" href="css/ide.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/match-highlighter.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
 </head>
 <body>
   <header class="barra-menu">
     <span class="marca">Laboratorio Java PSP</span>
-    <span class="subtitulo">Prueba de viabilidad del entorno web</span>
+    <span class="subtitulo">UT2 · Tienda de ropa</span>
   </header>
 
   <nav class="barra-herramientas" aria-label="Acciones">
     <button id="btn-ejecutar" class="btn btn-run" disabled title="Compilar y ejecutar Main (Ctrl+F11)"><span class="icono-run"></span>Ejecutar</button>
-    <span class="separador"></span>
-    <button id="btn-diagnostico" class="btn" disabled title="Batería automática de pruebas del entorno">Diagnóstico automático</button>
+    <span class="separador solo-profesor"></span>
+    <button id="btn-diagnostico" class="btn solo-profesor" disabled title="Batería automática de pruebas del entorno">Diagnóstico automático</button>
     <span class="separador"></span>
     <button id="btn-descargar" class="btn" title="Descargar todos los archivos del proyecto en un .zip">Descargar entrega</button>
     <button id="btn-plantilla" class="btn" title="Volver al código inicial del archivo abierto">Restaurar plantilla</button>
@@ -51,21 +55,19 @@
 
     <section class="vista panel-inferior">
       <div class="pestanas" role="tablist">
-        <button class="pestana" data-panel="guia" role="tab">Guía de la prueba</button>
+        <button class="pestana" data-panel="guia" role="tab">Guía</button>
         <button class="pestana" data-panel="consola" role="tab">Console</button>
         <button class="pestana" data-panel="problemas" role="tab">Problems <span id="contador-problemas"></span></button>
-        <button class="pestana" data-panel="diagnostico" role="tab">Diagnóstico</button>
+        <button class="pestana solo-profesor" data-panel="diagnostico" role="tab">Diagnóstico</button>
       </div>
 
       <div class="contenido-panel" id="panel-guia">
         <ol class="guia">
-          <li>Espera a que la barra inferior indique <strong>Entorno listo</strong>. El tiempo de carga se mide solo.</li>
-          <li>Pulsa <strong>Diagnóstico automático</strong> y no toques nada hasta que termine (dos o tres minutos).</li>
+          <li>Espera a que la barra inferior indique <strong>Entorno listo</strong>.</li>
           <li>Lee los requisitos al principio de <code>Almacen.java</code>, <code>Dependiente.java</code> y <code>Main.java</code>, y completa los TODO en ese orden. <code>Prenda</code> y <code>Pedidos</code> ya están hechos.</li>
           <li>Pulsa <strong>Ejecutar</strong> o Ctrl+F11 cuando quieras. Si hay errores, la vista Problems señala el archivo y la línea; pulsa sobre el error para ir a él.</li>
           <li>Cuando <code>Main</code> termine mostrando las ventas y el inventario, revisa tu código contra cada requisito: la corrección se hará después con pruebas que no ves aquí.</li>
-          <li>Pulsa <strong>Descargar entrega</strong>, impórtala en Eclipse en tu máquina virtual, ejecuta <code>Main</code> e indica en la pestaña Diagnóstico si el resultado coincide.</li>
-          <li>Sube el <code>.zip</code> de la entrega a la tarea del Aula Virtual. En la pestaña Diagnóstico pulsa <strong>Copiar informe</strong> y pégalo en el texto de la misma tarea.</li>
+          <li>Pulsa <strong>Descargar entrega</strong> y sube el <code>.zip</code> a la tarea del Aula Virtual. Además de tu código, incluye un informe técnico del entorno (tiempos de carga y compilación) que nos sirve para evaluar el laboratorio.</li>
         </ol>
         <p class="nota">Si la página deja de responder durante más de un minuto, pulsa <strong>Reiniciar entorno</strong>: el código se conserva.</p>
       </div>
@@ -81,22 +83,8 @@
         </table>
       </div>
 
-      <div class="contenido-panel" id="panel-diagnostico">
+      <div class="contenido-panel solo-profesor" id="panel-diagnostico">
         <div class="diag-cabecera">
-          <label>Equipo
-            <select id="diag-equipo">
-              <option value="aula">Ordenador del aula</option>
-              <option value="portatil">Portátil propio</option>
-            </select>
-          </label>
-          <label>Tu proyecto en Eclipse (JVM real)
-            <select id="diag-eclipse">
-              <option value="no-probado">No probado</option>
-              <option value="igual">Compila y el resultado coincide</option>
-              <option value="distinto">Compila, pero el resultado es distinto</option>
-              <option value="no-compila">No compila</option>
-            </select>
-          </label>
           <button id="btn-copiar" class="btn">Copiar informe</button>
         </div>
         <table class="tabla-diag">

@@ -185,3 +185,27 @@ th { background: #f5f5f5; font-weight: 600; }
   .explorador { grid-row: auto; }
   .editor, .panel-inferior { grid-column: 1; }
 }
+
+/* El diagnóstico completo solo aparece con ?diagnostico */
+body:not(.modo-profesor) .solo-profesor { display: none !important; }
+
+/* Tema eclipse de CodeMirror ajustado a la paleta por defecto de Eclipse */
+.cm-s-eclipse .CodeMirror-gutters { background: #fff; border-right: 0; }
+.cm-s-eclipse .CodeMirror-linenumber { color: #787878; }
+.cm-s-eclipse span.cm-type.cm-primitivo,
+.cm-s-eclipse span.cm-atom { color: #7f0055; font-weight: bold; }
+.cm-s-eclipse span.cm-type,
+.cm-s-eclipse span.cm-def,
+.cm-s-eclipse span.cm-number,
+.cm-s-eclipse span.cm-variable { color: #000; }
+.cm-s-eclipse span.cm-meta { color: #646464; }
+.cm-s-eclipse span.cm-campo { color: #0000c0; }
+.cm-s-eclipse span.cm-campo-estatico { color: #0000c0; font-style: italic; }
+.cm-s-eclipse span.cm-constante { color: #0000c0; font-style: italic; font-weight: bold; }
+.cm-s-eclipse span.cm-comment.cm-campo,
+.cm-s-eclipse span.cm-comment.cm-campo-estatico,
+.cm-s-eclipse span.cm-comment.cm-constante { color: #3f7f5f; font-style: normal; font-weight: normal; }
+.cm-s-eclipse span.cm-string.cm-campo,
+.cm-s-eclipse span.cm-string.cm-campo-estatico,
+.cm-s-eclipse span.cm-string.cm-constante { color: #2a00ff; font-style: normal; font-weight: normal; }
+.cm-s-eclipse .cm-matchhighlight { background: #d4d4d4; }
