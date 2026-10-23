@@ -6,22 +6,25 @@ const RAIZ_APP = '/app' + location.pathname.replace(/[^/]*$/, '');
 const LIB = RAIZ_APP + 'lib/';
 const CP_JAVAC = LIB + 'tools.jar';
 const CP_EJECUCION = ['/files/', LIB + 'junit-4.13.2.jar', LIB + 'hamcrest-core-1.3.jar'].join(':');
-const CLAVE = 'psp-ide-web:v2:';
+const CLAVE = 'psp-ide-web:v3:';
 const VERSION_INFORME = 'INFORME LABORATORIO JAVA WEB v1';
 const VERSION_ENTORNO = 'ENTORNO LABORATORIO JAVA WEB v1';
 // El diagnóstico completo solo se muestra abriendo la página con ?diagnostico
 const MODO_PROFESOR = new URLSearchParams(location.search).has('diagnostico');
 
 const JAVA = 'text/x-java';
+// La clave de cada archivo incluye su paquete; cada paquete es un ejercicio
+// independiente que se compila y se ejecuta por separado.
 const ARCHIVOS = {
-  'Almacen.java': { ruta: 'java/proyecto/Almacen.java', soloLectura: false, modo: JAVA },
-  'Dependiente.java': { ruta: 'java/proyecto/Dependiente.java', soloLectura: false, modo: JAVA },
-  'Main.java': { ruta: 'java/proyecto/Main.java', soloLectura: false, modo: JAVA },
-  'Prenda.java': { ruta: 'java/proyecto/Prenda.java', soloLectura: true, modo: JAVA },
-  'Pedidos.java': { ruta: 'java/proyecto/Pedidos.java', soloLectura: true, modo: JAVA },
+  'ejercicio1/Almacen.java': { ruta: 'java/proyecto/ejercicio1/Almacen.java', soloLectura: false, modo: JAVA },
+  'ejercicio1/Main.java': { ruta: 'java/proyecto/ejercicio1/Main.java', soloLectura: true, modo: JAVA },
+  'ejercicio2/Almacen.java': { ruta: 'java/proyecto/ejercicio2/Almacen.java', soloLectura: false, modo: JAVA },
+  'ejercicio2/Main.java': { ruta: 'java/proyecto/ejercicio2/Main.java', soloLectura: true, modo: JAVA },
   'LEEME.txt': { ruta: 'java/proyecto/LEEME.txt', soloLectura: true, modo: 'text/plain' },
 };
 const esJava = (n) => ARCHIVOS[n].modo === JAVA;
+const paqueteDe = (n) => (n.includes('/') ? n.split('/')[0] : null);
+const nombreCorto = (n) => n.split('/').pop();
 const NOMBRE_ENTREGA = 'entrega_tienda_ropa.zip';
 
 const DIAGNOSTICOS = [
@@ -55,6 +58,7 @@ const estado = {
   docs: {},
   activo: 'LEEME.txt',
   ocupado: false,
+  listo: false,
   inicioPagina: performance.now(),
   primeraCompilacion: null,
   marcasError: [],
@@ -99,8 +103,17 @@ function mostrarPanel(nombre) {
   document.querySelectorAll('.contenido-panel').forEach((c) => c.classList.toggle('activo', c.id === 'panel-' + nombre));
 }
 
+function actualizarEjecutar() {
+  const soloLectura = ARCHIVOS[estado.activo].soloLectura;
+  $('btn-ejecutar').disabled = estado.ocupado || !estado.listo || soloLectura;
+  $('btn-ejecutar').title = soloLectura
+    ? 'Abre el Almacen.java de un ejercicio para ejecutarlo'
+    : 'Compilar el ejercicio y ejecutar su Main (Ctrl+F11)';
+}
+
 function bloquearBotones(bloquear) {
-  ['btn-ejecutar', 'btn-diagnostico'].forEach((id) => { $(id).disabled = bloquear; });
+  $('btn-diagnostico').disabled = bloquear;
+  actualizarEjecutar();
 }
 
 async function conBloqueo(fn) {
@@ -256,6 +269,7 @@ function crearEditor() {
 }
 
 function abrirArchivo(nombre) {
+  if (!ARCHIVOS[nombre]) return;
   estado.activo = nombre;
   escribirAlmacen('activo', nombre);
   editor.swapDoc(estado.docs[nombre]);
@@ -265,11 +279,16 @@ function abrirArchivo(nombre) {
   editor.setOption('readOnly', ARCHIVOS[nombre].soloLectura);
   $('pestana-editor').textContent = nombre + (ARCHIVOS[nombre].soloLectura ? ' (solo lectura)' : '');
   document.querySelectorAll('.archivo').forEach((b) => b.classList.toggle('activo', b.dataset.archivo === nombre));
+  actualizarEjecutar();
   editor.focus();
 }
 
-function fuentesProyecto() {
-  return Object.keys(ARCHIVOS).filter(esJava).map((n) => ({ nombre: n, texto: estado.docs[n].getValue() }));
+// CheerpJ no admite subcarpetas en /str/: los fuentes de un paquete se
+// escriben con su nombre corto y javac crea /files/<paquete>/ al compilar.
+function fuentesPaquete(paquete) {
+  return Object.keys(ARCHIVOS)
+    .filter((n) => esJava(n) && paqueteDe(n) === paquete)
+    .map((n) => ({ nombre: nombreCorto(n), texto: estado.docs[n].getValue() }));
 }
 
 function limpiarMarcas() {
@@ -280,26 +299,27 @@ function limpiarMarcas() {
   estado.marcasError = [];
 }
 
-function mostrarProblemas(problemas) {
+function mostrarProblemas(problemas, paquete) {
   limpiarMarcas();
   const cuerpo = $('lista-problemas');
   cuerpo.innerHTML = '';
   const errores = problemas.filter((p) => p.tipo === 'error').length;
   $('contador-problemas').textContent = problemas.length ? '(' + problemas.length + ')' : '';
   problemas.forEach((p) => {
+    const clave = paquete ? paquete + '/' + p.archivo : p.archivo;
     const fila = document.createElement('tr');
     const desc = document.createElement('td');
     desc.className = p.tipo === 'error' ? 'tipo-error' : '';
     desc.textContent = p.mensaje;
     const rec = document.createElement('td');
-    rec.textContent = p.archivo;
+    rec.textContent = clave;
     const lin = document.createElement('td');
     lin.textContent = 'línea ' + p.linea;
     fila.append(desc, rec, lin);
-    fila.addEventListener('click', () => irALinea(p.archivo, p.linea));
+    fila.addEventListener('click', () => irALinea(clave, p.linea));
     cuerpo.appendChild(fila);
 
-    const doc = estado.docs[p.archivo];
+    const doc = estado.docs[clave];
     if (doc) {
       const linea = p.linea - 1;
       doc.addLineClass(linea, 'background', 'linea-error');
@@ -328,7 +348,7 @@ function irALinea(archivo, linea) {
 const horaEclipse = (d) => d.toLocaleString('es-ES', {
   day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
 });
-const LANZADOR = 'Main [Java Application] JVM del navegador (Java 8)';
+const lanzador = (paquete) => 'Main (' + paquete + ') [Java Application] JVM del navegador (Java 8)';
 
 // Copia en directo a la vista Console lo que el programa escribe en #console
 function reflejarConsola() {
@@ -347,11 +367,13 @@ function reflejarConsola() {
 }
 
 async function accionEjecutar() {
+  const paquete = paqueteDe(estado.activo);
+  if (!paquete || ARCHIVOS[estado.activo].soloLectura) return;
   await conBloqueo(async () => {
     mostrarPanel('consola');
-    setEstado('Compilando el proyecto tienda-ropa...');
-    const c = await compilar(fuentesProyecto());
-    const errores = mostrarProblemas(c.problemas);
+    setEstado('Compilando ' + paquete + '...');
+    const c = await compilar(fuentesPaquete(paquete));
+    const errores = mostrarProblemas(c.problemas, paquete);
     if (c.codigo !== 0) {
       estado.metricas.conErrores++;
       setEstado('Hay errores en el proyecto: ' + (errores || 'algún') + ' error(es) de compilación. Revisa la vista Problems.');
@@ -360,24 +382,27 @@ async function accionEjecutar() {
     }
     setEstado('Ejecutando Main...');
     const inicio = new Date();
-    $('consola-titulo').textContent = LANZADOR + ' (' + horaEclipse(inicio) + ')';
+    $('consola-titulo').textContent = lanzador(paquete) + ' (' + horaEclipse(inicio) + ')';
     $('btn-terminar').disabled = false;
     limpiarConsola();
     const dejarDeReflejar = reflejarConsola();
+    const aviso = setTimeout(() => setEstado('La ejecución lleva más de 20 s. Si no avanza, pulsa Terminar en la vista Console.'), 20000);
     let e;
     try {
-      e = await ejecutar('Main');
+      e = await ejecutar(paquete + '.Main');
     } finally {
+      clearTimeout(aviso);
       dejarDeReflejar();
       $('btn-terminar').disabled = true;
-      $('consola-titulo').textContent = '<terminated> ' + LANZADOR + ' (' + horaEclipse(inicio) + ' – '
+      $('consola-titulo').textContent = '<terminated> ' + lanzador(paquete) + ' (' + horaEclipse(inicio) + ' – '
         + horaEclipse(new Date()).split(', ').pop() + ')';
     }
     const coherente = e.salida.match(/Inventario coherente: (\S+)/);
-    const ventas = e.salida.match(/Ventas totales: (\d+)/);
+    const jornada = e.salida.match(/Tiempo de la jornada: (\d+) ms/);
     estado.resultados.tareaMain = coherente
-      ? { texto: 'ventas ' + (ventas ? ventas[1] : '?') + ', inventario coherente: ' + coherente[1] + ', ' + e.segundos.toFixed(1) + ' s', valor: 'ok' }
-      : { texto: 'Main no mostró el resultado de la jornada', valor: 'aviso' };
+      ? { texto: paquete + ', inventario coherente: ' + coherente[1] + (jornada ? ', jornada ' + jornada[1] + ' ms' : '')
+          + ', ' + e.segundos.toFixed(1) + ' s', valor: 'ok' }
+      : { texto: paquete + ': Main no mostró el resultado', valor: 'aviso' };
     estado.metricas.ejecuciones++;
     estado.metricas.ultimaEjecucion = estado.resultados.tareaMain.texto;
     pintarDiagnostico();
@@ -603,6 +628,7 @@ async function iniciar() {
   const segundos = (performance.now() - estado.inicioPagina) / 1000;
   estado.metricas.carga = segundos;
   registrar('carga', segundos.toFixed(1) + ' s', umbral(segundos, 20, 60));
+  estado.listo = true;
   bloquearBotones(false);
   setEstado('Entorno listo. La primera compilación tarda unos segundos más que las siguientes.');
 }

@@ -119,6 +119,8 @@ body {
 .archivo.activo { background: var(--acento-suave); outline: 1px solid var(--acento); }
 .solo-lectura { color: var(--texto-suave); font-size: 11px; }
 .archivo.archivo-raiz { padding-left: 20px; }
+.nodo-paquete { padding-left: 34px !important; color: var(--texto-suave); }
+.archivo.archivo-paquete { padding-left: 48px; }
 
 #contenedor-editor { flex: 1; min-height: 0; }
 .CodeMirror { height: 100%; font-family: var(--mono); font-size: 13px; }

@@ -1,23 +1,35 @@
 LABORATORIO JAVA PSP - UT2 - TIENDA DE ROPA
 ===========================================
 
-Pasos
------
+El proyecto tiene dos ejercicios, cada uno en su paquete. En cada uno solo
+se modifica Almacen.java; Main.java lanza los hilos y es de solo lectura.
+
+Ejercicio 1 (paquete ejercicio1): el almacén compartido
+  Protege con synchronized la zona crítica del almacén de camisetas y
+  responde a las dos preguntas del final de Almacen.java.
+
+Ejercicio 2 (paquete ejercicio2): un cerrojo por prenda
+  Sustituye los métodos synchronized por cerrojos dedicados para camisetas
+  y pantalones, protegiendo solo las líneas que tocan el stock.
+
+Cómo trabajar
+-------------
 
 1. Espera a que la barra inferior indique "Entorno listo".
 
-2. Lee los requisitos al principio de Almacen.java, Dependiente.java y
-   Main.java, y completa los TODO en ese orden. Prenda.java y Pedidos.java
-   ya están hechos y no se pueden modificar.
+2. Abre el Almacen.java del ejercicio y lee las tareas de su comentario
+   inicial.
 
-3. Pulsa Ejecutar (o Ctrl+F11) cuando quieras:
-   - Si hay errores de compilación, se abre la vista Problems con el
-     archivo y la línea de cada error. Haz clic sobre el error para ir a él.
+3. Con el Almacen.java abierto, pulsa Ejecutar (o Ctrl+F11): se compila el
+   ejercicio y se lanza su Main.
+   - Si hay errores de compilación, se abre la vista Problems con la línea
+     de cada error. Haz clic sobre el error para ir a él.
    - Si compila, la salida del programa aparece en la vista Console.
 
-4. Cuando Main termine mostrando las ventas y el inventario, revisa tu
-   código contra cada requisito. La corrección se hará después con pruebas
-   que no ves aquí.
+4. Que el programa termine con "Inventario coherente: sí" no garantiza que
+   la solución sea correcta: esta máquina virtual reparte los hilos de otra
+   forma que una JVM real. La corrección se hará después con pruebas en una
+   JVM real.
 
 5. Pulsa "Descargar entrega" y sube el .zip a la tarea del Aula Virtual.
    Además de tu código, el .zip incluye un informe técnico del entorno
