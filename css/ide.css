@@ -71,11 +71,6 @@ body {
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
 }
-.icono-test {
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, var(--acento) 50%, var(--error) 50%);
-}
 
 .espacio {
   display: grid;
@@ -166,11 +161,6 @@ th { background: #f5f5f5; font-weight: 600; }
 .tabla-problemas tr { cursor: pointer; }
 .tabla-problemas tr:hover td { background: #f7f7f7; }
 .tipo-error::before { content: "x "; color: var(--error); font-weight: 700; }
-
-.junit-resumen { margin-bottom: 6px; }
-.junit-barra { height: 14px; border: 1px solid var(--borde); margin-bottom: 8px; background: #eee; }
-.junit-barra.ok { background: #3c9d4e; }
-.junit-barra.fallo { background: #b3261e; }
 
 .diag-cabecera { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; margin-bottom: 8px; }
 .diag-cabecera label { display: flex; flex-direction: column; gap: 2px; color: var(--texto-suave); }

@@ -6,14 +6,17 @@ const RAIZ_APP = '/app' + location.pathname.replace(/[^/]*$/, '');
 const LIB = RAIZ_APP + 'lib/';
 const CP_JAVAC = LIB + 'tools.jar';
 const CP_EJECUCION = ['/files/', LIB + 'junit-4.13.2.jar', LIB + 'hamcrest-core-1.3.jar'].join(':');
-const CLAVE = 'psp-ide-web:v1:';
+const CLAVE = 'psp-ide-web:v2:';
 const VERSION_INFORME = 'INFORME LABORATORIO JAVA WEB v1';
 
 const ARCHIVOS = {
-  'CuentaBancaria.java': { ruta: 'java/proyecto/CuentaBancaria.java', soloLectura: false },
+  'Almacen.java': { ruta: 'java/proyecto/Almacen.java', soloLectura: false },
+  'Dependiente.java': { ruta: 'java/proyecto/Dependiente.java', soloLectura: false },
   'Main.java': { ruta: 'java/proyecto/Main.java', soloLectura: false },
-  'CuentaBancariaTest.java': { ruta: 'java/proyecto/CuentaBancariaTest.java', soloLectura: true },
+  'Prenda.java': { ruta: 'java/proyecto/Prenda.java', soloLectura: true },
+  'Pedidos.java': { ruta: 'java/proyecto/Pedidos.java', soloLectura: true },
 };
+const NOMBRE_ENTREGA = 'entrega_tienda_ropa.zip';
 
 const DIAGNOSTICOS = [
   'DiagEntorno', 'DiagErrorSintaxis', 'DiagErrorSemantico', 'DiagErrorSimbolo',
@@ -37,15 +40,14 @@ const PRUEBAS = [
   ['waitnotify', 'wait y notifyAll'],
   ['paralelismo', 'Paralelismo real (tiempo 2 hilos / 1 hilo)'],
   ['junit', 'JUnit ejecuta y detecta un fallo'],
-  ['tareaMain', 'Tu Main sin synchronized'],
-  ['tareaTests', 'Tus últimos tests'],
+  ['tareaMain', 'Tu proyecto: última ejecución de Main'],
 ];
 
 const estado = {
   plantillas: {},
   fuentesDiag: {},
   docs: {},
-  activo: 'CuentaBancaria.java',
+  activo: 'Almacen.java',
   ocupado: false,
   inicioPagina: performance.now(),
   primeraCompilacion: null,
@@ -89,7 +91,7 @@ function mostrarPanel(nombre) {
 }
 
 function bloquearBotones(bloquear) {
-  ['btn-ejecutar', 'btn-tests', 'btn-diagnostico'].forEach((id) => { $(id).disabled = bloquear; });
+  ['btn-ejecutar', 'btn-diagnostico'].forEach((id) => { $(id).disabled = bloquear; });
 }
 
 async function conBloqueo(fn) {
@@ -201,10 +203,8 @@ function abrirArchivo(nombre) {
   editor.focus();
 }
 
-function fuentesProyecto(conTests) {
-  return Object.keys(ARCHIVOS)
-    .filter((n) => conTests || n !== 'CuentaBancariaTest.java')
-    .map((n) => ({ nombre: n, texto: estado.docs[n].getValue() }));
+function fuentesProyecto() {
+  return Object.keys(ARCHIVOS).map((n) => ({ nombre: n, texto: estado.docs[n].getValue() }));
 }
 
 function limpiarMarcas() {
@@ -261,7 +261,7 @@ function irALinea(archivo, linea) {
 async function accionEjecutar() {
   await conBloqueo(async () => {
     setEstado('Compilando...');
-    const c = await compilar(fuentesProyecto(false));
+    const c = await compilar(fuentesProyecto());
     const errores = mostrarProblemas(c.problemas);
     if (c.codigo !== 0) {
       setEstado('Compilación fallida: ' + (errores || 'algún') + ' error(es) en ' + c.segundos.toFixed(1) + ' s');
@@ -271,34 +271,13 @@ async function accionEjecutar() {
     setEstado('Ejecutando Main...');
     mostrarPanel('consola');
     const e = await ejecutar('Main');
-    const perdidos = e.salida.match(/Ingresos perdidos: (-?\d+)/);
-    const sincronizado = /synchronized\s+void\s+ingresar|synchronized\s*\(/.test(estado.docs['CuentaBancaria.java'].getValue());
-    if (perdidos && !sincronizado) {
-      estado.resultados.tareaMain = { texto: 'perdidos ' + perdidos[1], valor: Number(perdidos[1]) > 0 ? 'ok' : 'aviso' };
-      pintarDiagnostico();
-    }
-    setEstado('Main terminado. Compilación ' + c.segundos.toFixed(1) + ' s, ejecución ' + e.segundos.toFixed(1) + ' s');
-  });
-}
-
-async function accionTests() {
-  await conBloqueo(async () => {
-    setEstado('Compilando proyecto y tests...');
-    const c = await compilar(fuentesProyecto(true));
-    const errores = mostrarProblemas(c.problemas);
-    if (c.codigo !== 0) {
-      setEstado('Compilación fallida: ' + (errores || 'algún') + ' error(es)');
-      mostrarPanel('problemas');
-      return;
-    }
-    setEstado('Ejecutando tests...');
-    mostrarPanel('junit');
-    const e = await ejecutar('org.junit.runner.JUnitCore', 'CuentaBancariaTest');
-    const r = resumenJUnit(e.salida);
-    pintarJUnit(r, e.salida);
-    estado.resultados.tareaTests = { texto: r.texto, valor: r.fallos === 0 ? 'ok' : 'aviso' };
+    const coherente = e.salida.match(/Inventario coherente: (\S+)/);
+    const ventas = e.salida.match(/Ventas totales: (\d+)/);
+    estado.resultados.tareaMain = coherente
+      ? { texto: 'ventas ' + (ventas ? ventas[1] : '?') + ', inventario coherente: ' + coherente[1] + ', ' + e.segundos.toFixed(1) + ' s', valor: 'ok' }
+      : { texto: 'Main no mostró el resultado de la jornada', valor: 'aviso' };
     pintarDiagnostico();
-    setEstado('Tests terminados en ' + e.segundos.toFixed(1) + ' s');
+    setEstado('Main terminado. Compilación ' + c.segundos.toFixed(1) + ' s, ejecución ' + e.segundos.toFixed(1) + ' s');
   });
 }
 
@@ -308,18 +287,6 @@ function resumenJUnit(salida) {
   const m = salida.match(/Tests run: (\d+),\s+Failures: (\d+)/);
   if (m) return { total: Number(m[1]), fallos: Number(m[2]), texto: m[1] + ' tests, ' + m[2] + ' fallos' };
   return { total: 0, fallos: -1, texto: 'sin resultado legible' };
-}
-
-function pintarJUnit(r, salida) {
-  $('junit-resumen').textContent = r.fallos === -1
-    ? 'No se pudo leer el resultado de JUnit.'
-    : 'Ejecutados: ' + r.total + '   Fallos: ' + r.fallos;
-  $('junit-barra').className = 'junit-barra ' + (r.fallos === 0 ? 'ok' : 'fallo');
-  const fallos = [];
-  const re = /^\d+\) (\w+)\(\w+\)\n(.+)$/gm;
-  let m;
-  while ((m = re.exec(salida)) !== null) fallos.push(m[1] + ': ' + m[2]);
-  $('junit-detalle').textContent = fallos.length ? fallos.join('\n') : (r.fallos === 0 ? 'Todos los tests pasan.' : salida);
 }
 
 // ---------- diagnóstico ----------
@@ -433,7 +400,7 @@ function textoInforme() {
   const lineas = [VERSION_INFORME];
   lineas.push('equipo=' + $('diag-equipo').value);
   lineas.push('navegador=' + navigator.userAgent);
-  lineas.push('eclipse.perdidos=' + ($('diag-eclipse').value.trim() || 'sin dato'));
+  lineas.push('eclipse=' + $('diag-eclipse').value);
   PRUEBAS.forEach(([id]) => {
     const r = estado.resultados[id];
     lineas.push(id + '=' + (r ? r.valor + ' | ' + r.texto : 'pendiente'));
@@ -456,13 +423,16 @@ async function copiarInforme() {
   setEstado('Informe copiado. Pégalo en la tarea del Aula Virtual.');
 }
 
-function descargarArchivo() {
-  const blob = new Blob([editor.getValue()], { type: 'text/x-java' });
+async function descargarEntrega() {
+  const zip = new JSZip();
+  Object.keys(ARCHIVOS).forEach((n) => zip.file(n, estado.docs[n].getValue()));
+  const blob = await zip.generateAsync({ type: 'blob' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = estado.activo;
+  a.download = NOMBRE_ENTREGA;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  setEstado('Entrega descargada: ' + NOMBRE_ENTREGA + '. Súbela a la tarea del Aula Virtual.');
 }
 
 function restaurarPlantilla() {
@@ -477,10 +447,9 @@ function enlazarUI() {
   document.querySelectorAll('.archivo').forEach((b) => b.addEventListener('click', () => abrirArchivo(b.dataset.archivo)));
   document.querySelectorAll('.pestana').forEach((p) => p.addEventListener('click', () => mostrarPanel(p.dataset.panel)));
   $('btn-ejecutar').addEventListener('click', accionEjecutar);
-  $('btn-tests').addEventListener('click', accionTests);
   $('btn-diagnostico').addEventListener('click', accionDiagnostico);
   $('btn-copiar').addEventListener('click', copiarInforme);
-  $('btn-descargar').addEventListener('click', descargarArchivo);
+  $('btn-descargar').addEventListener('click', descargarEntrega);
   $('btn-plantilla').addEventListener('click', restaurarPlantilla);
   $('btn-reiniciar').addEventListener('click', () => location.reload());
   ['diag-equipo', 'diag-eclipse'].forEach((id) => {
