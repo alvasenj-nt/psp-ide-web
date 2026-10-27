@@ -366,7 +366,10 @@ function crearEditor() {
     styleActiveLine: true,
     highlightSelectionMatches: MARCADO_APARICIONES,
     gutters: ['marcas-error', 'CodeMirror-linenumbers'],
-    extraKeys: { Tab: (cm) => cm.replaceSelection('    ') },
+    extraKeys: {
+      Tab: (cm) => (cm.somethingSelected() ? cm.indentSelection('add') : cm.replaceSelection('    ')),
+      'Shift-Tab': 'indentLess',
+    },
   });
   abrirArchivo(estado.activo);
   editor.on('change', () => {
@@ -375,7 +378,127 @@ function crearEditor() {
     }
     clearTimeout(temporizadorCampos);
     temporizadorCampos = setTimeout(actualizarCampos, 300);
+    clearTimeout(temporizadorRevision);
+    temporizadorRevision = setTimeout(revisarEstructura, 500);
   });
+  revisarEstructura();
+}
+
+// ---------- revisión mientras se escribe ----------
+
+// javac solo corre al pulsar Ejecutar (tarda segundos en CheerpJ). Mientras
+// se escribe se revisa la estructura: llaves, paréntesis y corchetes que no
+// cierran o cierran con otro signo, y cadenas o comentarios sin terminar.
+// Lo que va dentro de cadenas, caracteres y comentarios no cuenta.
+const PAREJAS = { ')': '(', ']': '[', '}': '{' };
+let temporizadorRevision = null;
+
+const sangria = (l) => l.match(/^[ \t]*/)[0].replace(/\t/g, '    ').length;
+// Sangría de la línea si empieza por }; -1 si delante hay otra cosa
+const sangriaCierre = (l) => (/^[ \t]*\}/.test(l) ? sangria(l) : -1);
+// Sangría de la sentencia que abre un bloque: si el { está en una línea de
+// continuación (condición partida en varias líneas), cuenta la primera.
+function sangriaApertura(lineas, n) {
+  while (n > 0 && /[^\s;{}]\s*$/.test(lineas[n - 1].replace(/\/\/.*$/, '')) && !/^\s*(@|\/\/|\/?\*)/.test(lineas[n - 1])) n--;
+  return sangria(lineas[n]);
+}
+
+// Primero se cuentan los signos sin mirar la sangría. Solo si queda algún {
+// sin cerrar se repite usando la sangría para señalar cuál es: si no, el
+// error caería en el { de la clase, que siempre es el último en cerrarse.
+// Con la sangría muy descuidada la segunda pasada puede inventar llaves
+// sobrantes: entonces vale la primera.
+function problemasEstructura(texto) {
+  const primera = analizarEstructura(texto, false);
+  if (!primera.desequilibrado) return primera.problemas;
+  const errores = (r) => r.problemas.filter((p) => p.tipo === 'error').length;
+  const segunda = analizarEstructura(texto, true);
+  return errores(segunda) === errores(primera) ? segunda.problemas : primera.problemas;
+}
+
+function analizarEstructura(texto, localizar) {
+  const lineas = texto.split('\n');
+  const problemas = [];
+  const pila = [];
+  const error = (linea, mensaje) => problemas.push({ linea, tipo: 'error', mensaje });
+  let linea = 1;
+  let i = 0;
+  while (i < texto.length) {
+    const c = texto[i];
+    if (c === '\n') {
+      linea++;
+      i++;
+    } else if (texto.startsWith('//', i)) {
+      while (i < texto.length && texto[i] !== '\n') i++;
+    } else if (texto.startsWith('/*', i)) {
+      const inicio = linea;
+      i += 2;
+      while (i < texto.length && !texto.startsWith('*/', i)) {
+        if (texto[i] === '\n') linea++;
+        i++;
+      }
+      if (i >= texto.length) error(inicio, 'Comentario /* sin cerrar');
+      i += 2;
+    } else if (texto.startsWith('"""', i)) {
+      const inicio = linea;
+      i += 3;
+      while (i < texto.length && !texto.startsWith('"""', i)) {
+        if (texto[i] === '\\') i++;
+        else if (texto[i] === '\n') linea++;
+        i++;
+      }
+      if (i >= texto.length) error(inicio, 'Bloque de texto """ sin cerrar');
+      i += 3;
+    } else if (c === '"' || c === "'") {
+      i++;
+      while (i < texto.length && texto[i] !== c && texto[i] !== '\n') i += texto[i] === '\\' ? 2 : 1;
+      if (texto[i] === c) i++;
+      else error(linea, c === '"' ? 'Cadena sin cerrar: falta la comilla "' : "Carácter sin cerrar: falta la comilla '");
+    } else {
+      if (c === '(' || c === '[' || c === '{') {
+        pila.push({ c, linea, sangria: sangriaApertura(lineas, linea - 1) });
+      } else if (PAREJAS[c]) {
+        // Una } al principio de línea cierra el bloque con su misma sangría:
+        // los { más sangrados que siguen abiertos son los que faltan cerrar
+        const cierre = c === '}' ? sangriaCierre(lineas[linea - 1]) : -1;
+        if (localizar && cierre >= 0) {
+          while (pila.length > 1 && pila[pila.length - 1].c === '{' && pila[pila.length - 1].sangria > cierre
+            && pila.some((a) => a.c === '{' && a.sangria <= cierre)) {
+            error(pila.pop().linea, "'{' sin cerrar");
+          }
+        }
+        const abierto = pila[pila.length - 1];
+        if (abierto && abierto.c === '{' && c === '}' && cierre >= 0 && cierre !== abierto.sangria) {
+          problemas.push({ linea, tipo: 'aviso', mensaje: 'Sangría: esta } no está alineada con la línea ' + abierto.linea + ', que abre el bloque' });
+        }
+        if (!abierto) {
+          error(linea, "'" + c + "' sobra: no hay un '" + PAREJAS[c] + "' abierto");
+        } else if (abierto.c === PAREJAS[c]) {
+          pila.pop();
+        } else {
+          error(linea, "Aparece '" + c + "' cuando falta cerrar el '" + abierto.c + "' de la línea " + abierto.linea);
+          // Una } cierra su bloque aunque dentro falte un ) o un ]
+          if (c === '}') {
+            while (pila.length && pila[pila.length - 1].c !== '{') pila.pop();
+            pila.pop();
+          }
+        }
+      }
+      i++;
+    }
+  }
+  const desequilibrado = pila.some((a) => a.c === '{');
+  pila.forEach((a) => error(a.linea, "'" + a.c + "' sin cerrar"));
+  return { problemas: problemas.sort((a, b) => a.linea - b.linea), desequilibrado };
+}
+
+function revisarEstructura() {
+  const problemas = [];
+  Object.keys(ARCHIVOS)
+    .filter((n) => esJava(n) && !ARCHIVOS[n].soloLectura)
+    .forEach((n) => problemasEstructura(estado.docs[n].getValue())
+      .forEach((p) => problemas.push(Object.assign({ archivo: n }, p))));
+  mostrarProblemas(problemas, null);
 }
 
 function abrirArchivo(nombre) {
@@ -402,8 +525,8 @@ function fuentesPaquete(paquete) {
 }
 
 function limpiarMarcas() {
-  estado.marcasError.forEach(({ doc, linea }) => {
-    doc.removeLineClass(linea, 'background', 'linea-error');
+  estado.marcasError.forEach(({ doc, linea, clase }) => {
+    doc.removeLineClass(linea, 'background', clase);
     doc.setGutterMarker(linea, 'marcas-error', null);
   });
   estado.marcasError = [];
@@ -419,7 +542,7 @@ function mostrarProblemas(problemas, paquete) {
     const clave = paquete ? paquete + '/' + p.archivo : p.archivo;
     const fila = document.createElement('tr');
     const desc = document.createElement('td');
-    desc.className = p.tipo === 'error' ? 'tipo-error' : '';
+    desc.className = p.tipo === 'error' ? 'tipo-error' : 'tipo-aviso';
     desc.textContent = p.mensaje;
     const rec = document.createElement('td');
     rec.textContent = clave;
@@ -432,13 +555,17 @@ function mostrarProblemas(problemas, paquete) {
     const doc = estado.docs[clave];
     if (doc) {
       const linea = p.linea - 1;
-      doc.addLineClass(linea, 'background', 'linea-error');
-      const marca = document.createElement('span');
-      marca.className = 'marca-error';
-      marca.textContent = 'x';
-      marca.title = p.mensaje;
-      doc.setGutterMarker(linea, 'marcas-error', marca);
-      estado.marcasError.push({ doc, linea });
+      const clase = p.tipo === 'error' ? 'linea-error' : 'linea-aviso';
+      doc.addLineClass(linea, 'background', clase);
+      // Un error y un aviso en la misma línea: se queda la marca del error
+      if (p.tipo === 'error' || !doc.lineInfo(linea).gutterMarkers) {
+        const marca = document.createElement('span');
+        marca.className = p.tipo === 'error' ? 'marca-error' : 'marca-aviso';
+        marca.textContent = p.tipo === 'error' ? 'x' : '!';
+        marca.title = p.mensaje;
+        doc.setGutterMarker(linea, 'marcas-error', marca);
+      }
+      estado.marcasError.push({ doc, linea, clase });
     }
   });
   return errores;
