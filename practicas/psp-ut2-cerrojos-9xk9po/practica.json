@@ -1,0 +1,60 @@
+{
+  "esquema": 1,
+  "id": "psp-ut2-cerrojos-9xk9po",
+  "version": 1,
+  "titulo": "UT2 · Cerrojos, interbloqueo e inanición",
+  "proyecto": "cerrojos",
+  "readme": "README.txt",
+  "resultado": {
+    "patron": "Resultado coherente: ([^ \n]+)",
+    "texto": "resultado coherente: $1"
+  },
+  "ejercicios": [
+    {
+      "paquete": "ejercicio1",
+      "principal": "Main",
+      "archivos": [
+        {
+          "nombre": "Taquilla.java",
+          "editable": true
+        },
+        {
+          "nombre": "Main.java",
+          "editable": false
+        }
+      ]
+    },
+    {
+      "paquete": "ejercicio2",
+      "principal": "Main",
+      "archivos": [
+        {
+          "nombre": "Traslado.java",
+          "editable": true
+        },
+        {
+          "nombre": "Muelle.java",
+          "editable": false
+        },
+        {
+          "nombre": "Main.java",
+          "editable": false
+        }
+      ]
+    },
+    {
+      "paquete": "ejercicio3",
+      "principal": "Main",
+      "archivos": [
+        {
+          "nombre": "Oficina.java",
+          "editable": true
+        },
+        {
+          "nombre": "Main.java",
+          "editable": false
+        }
+      ]
+    }
+  ]
+}
